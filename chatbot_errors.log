@@ -1,0 +1,302 @@
+[26-Aug-2025 18:14:13 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:14:13 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"Hello, how are you?"}
+[26-Aug-2025 18:14:13 Europe/Berlin] Chatbot Handler - User message: Hello, how are you?
+[26-Aug-2025 18:14:13 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:14:13 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:14:13 Europe/Berlin] FAQ Check - Searching for: hello, how are you?
+[26-Aug-2025 18:14:13 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of variables must match the number of parameters in the prepared statement in C:\xampp\htdocs\Optimizing-Talent-Acquisition-and-Onboarding-Vector-team-\chatbot_handler.php:194
+Stack trace:
+#0 C:\xampp\htdocs\Optimizing-Talent-Acquisition-and-Onboarding-Vector-team-\chatbot_handler.php(194): mysqli_stmt->bind_param('ssssss', '%hello, how are...', '%hello, how are...', '%hello, how are...', '%hello, how are...', '%hello, how are...', '%hello, how are...')
+#1 C:\xampp\htdocs\Optimizing-Talent-Acquisition-and-Onboarding-Vector-team-\chatbot_handler.php(103): checkFAQ(Object(mysqli), 'Hello, how are ...')
+#2 {main}
+  thrown in C:\xampp\htdocs\Optimizing-Talent-Acquisition-and-Onboarding-Vector-team-\chatbot_handler.php on line 194
+[26-Aug-2025 18:14:15 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:14:15 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"What are my working hours?"}
+[26-Aug-2025 18:14:15 Europe/Berlin] Chatbot Handler - User message: What are my working hours?
+[26-Aug-2025 18:14:15 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:14:15 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:14:15 Europe/Berlin] FAQ Check - Searching for: what are my working hours?
+[26-Aug-2025 18:14:15 Europe/Berlin] PHP Fatal error:  Uncaught ArgumentCountError: The number of variables must match the number of parameters in the prepared statement in C:\xampp\htdocs\Optimizing-Talent-Acquisition-and-Onboarding-Vector-team-\chatbot_handler.php:194
+Stack trace:
+#0 C:\xampp\htdocs\Optimizing-Talent-Acquisition-and-Onboarding-Vector-team-\chatbot_handler.php(194): mysqli_stmt->bind_param('ssssss', '%what are my wo...', '%what are my wo...', '%what are my wo...', '%what are my wo...', '%what are my wo...', '%what are my wo...')
+#1 C:\xampp\htdocs\Optimizing-Talent-Acquisition-and-Onboarding-Vector-team-\chatbot_handler.php(103): checkFAQ(Object(mysqli), 'What are my wor...')
+#2 {main}
+  thrown in C:\xampp\htdocs\Optimizing-Talent-Acquisition-and-Onboarding-Vector-team-\chatbot_handler.php on line 194
+[26-Aug-2025 18:16:35 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:16:35 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"hello"}
+[26-Aug-2025 18:16:35 Europe/Berlin] Chatbot Handler - User message: hello
+[26-Aug-2025 18:16:35 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:16:35 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:16:35 Europe/Berlin] FAQ Check - Searching for: hello
+[26-Aug-2025 18:16:35 Europe/Berlin] FAQ Check - No match found
+[26-Aug-2025 18:16:35 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[26-Aug-2025 18:16:37 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"Hello, John! How can I assist you today?","usage":{"completion_tokens":12,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":294,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":306}}
+[26-Aug-2025 18:16:38 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:16:38 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:16:43 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:16:43 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"General HR inquiries"}
+[26-Aug-2025 18:16:43 Europe/Berlin] Chatbot Handler - User message: General HR inquiries
+[26-Aug-2025 18:16:43 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:16:43 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:16:43 Europe/Berlin] FAQ Check - Searching for: general hr inquiries
+[26-Aug-2025 18:16:43 Europe/Berlin] FAQ Check - No match found
+[26-Aug-2025 18:16:43 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[26-Aug-2025 18:16:46 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"Hi John! How can I assist you with your HR inquiry today? Here are some common topics I can help with:  \n\n- Leave policies and procedures  \n- Company benefits  \n- Onboarding tasks or training  \n- Document submission guidelines  \n- General workplace policies  \n\nLet me know your specific question, and I\u2019ll be happy to assist further!","usage":{"completion_tokens":69,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":296,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":365}}
+[26-Aug-2025 18:16:46 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:16:46 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:16:54 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:16:54 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"Leave policies"}
+[26-Aug-2025 18:16:54 Europe/Berlin] Chatbot Handler - User message: Leave policies
+[26-Aug-2025 18:16:54 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:16:54 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:16:54 Europe/Berlin] FAQ Check - Searching for: leave policies
+[26-Aug-2025 18:16:54 Europe/Berlin] FAQ Check - No match found
+[26-Aug-2025 18:16:54 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[26-Aug-2025 18:17:24 Europe/Berlin] CURL Error #28: Operation timed out after 30004 milliseconds with 0 bytes received
+[26-Aug-2025 18:17:24 Europe/Berlin] API Endpoint: https://models.inference.ai.azure.com/chat/completions
+[26-Aug-2025 18:17:24 Europe/Berlin] HTTP Code: 0
+[26-Aug-2025 18:17:24 Europe/Berlin] Chatbot API Error: Network Error: Unable to connect to AI service. Please check your internet connection or try again later.
+[26-Aug-2025 18:17:24 Europe/Berlin] Chatbot Handler - API result: {"success":false,"error":"Network Error: Unable to connect to AI service. Please check your internet connection or try again later.","response":"I apologize, but I'm having technical difficulties right now. Please contact HR directly at hr@haircare2u.my for immediate assistance."}
+[26-Aug-2025 18:17:24 Europe/Berlin] Chatbot Handler - API error: Network Error: Unable to connect to AI service. Please check your internet connection or try again later.
+[26-Aug-2025 18:17:24 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:17:24 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:17:27 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:17:27 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"my working hour"}
+[26-Aug-2025 18:17:27 Europe/Berlin] Chatbot Handler - User message: my working hour
+[26-Aug-2025 18:17:27 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:17:27 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:17:27 Europe/Berlin] FAQ Check - Searching for: my working hour
+[26-Aug-2025 18:17:27 Europe/Berlin] FAQ Check - Match found: What are my working hours?
+[26-Aug-2025 18:17:27 Europe/Berlin] Chatbot Handler - FAQ match found
+[26-Aug-2025 18:17:27 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:17:27 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:17:38 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:17:38 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"dress code"}
+[26-Aug-2025 18:17:38 Europe/Berlin] Chatbot Handler - User message: dress code
+[26-Aug-2025 18:17:38 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:17:38 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:17:38 Europe/Berlin] FAQ Check - Searching for: dress code
+[26-Aug-2025 18:17:38 Europe/Berlin] FAQ Check - Match found: What is the dress code?
+[26-Aug-2025 18:17:38 Europe/Berlin] Chatbot Handler - FAQ match found
+[26-Aug-2025 18:17:38 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:17:38 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:17:52 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:17:52 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"take leave"}
+[26-Aug-2025 18:17:52 Europe/Berlin] Chatbot Handler - User message: take leave
+[26-Aug-2025 18:17:52 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:17:52 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:17:52 Europe/Berlin] FAQ Check - Searching for: take leave
+[26-Aug-2025 18:17:52 Europe/Berlin] FAQ Check - No match found
+[26-Aug-2025 18:17:52 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[26-Aug-2025 18:17:56 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"To apply for leave, you can follow these steps:\n\n1. **Check Leave Balance**: Confirm your remaining leave days through the HR portal or by contacting HR at hr@haircare2u.my.\n\n2. **Submit Leave Application**: Log into the company HR system and fill out the leave application form. Specify the type of leave (annual, medical, etc.) and the dates.\n\n3. **Manager Approval**: Your leave request will be sent to your manager for approval. Ensure you communicate with your manager if needed.\n\n4. **Confirmation**: Once approved, you\u2019ll receive confirmation through the HR portal or email.\n\nIf you encounter any issues, feel free to contact HR at hr@haircare2u.my or +60 12-345 6790.\n\nLet me know if you need further assistance!","usage":{"completion_tokens":167,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":295,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":462}}
+[26-Aug-2025 18:17:56 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:17:56 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:18:05 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:18:05 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"how to take leave?"}
+[26-Aug-2025 18:18:05 Europe/Berlin] Chatbot Handler - User message: how to take leave?
+[26-Aug-2025 18:18:05 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:18:05 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:18:05 Europe/Berlin] FAQ Check - Searching for: how to take leave?
+[26-Aug-2025 18:18:05 Europe/Berlin] FAQ Check - No match found
+[26-Aug-2025 18:18:05 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[26-Aug-2025 18:18:11 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"Hi John! To take leave at HairCare2U, here\u2019s what you need to do:\n\n1. **Check Your Leave Balance:** You\u2019re entitled to 14 days of annual leave and 14 days of medical leave per year. If you're unsure of your balance, you can contact HR at **hr@haircare2u.my**.\n\n2. **Submit a Leave Request:** Log in to the company\u2019s HR portal or leave management system (if applicable) and fill out the leave application form. If the system isn't available, you can email your leave request to your manager and CC the HR department.\n\n3. **Manager Approval:** Your manager will review and approve or decline your leave request. Make sure to apply in advance, especially for annual leave, to ensure proper planning within your team.\n\n4. **Medical Leave:** If it's medical leave, ensure you provide a valid medical certificate from a registered doctor and submit it to HR.\n\nIf you have any questions or face issues with the process, feel free to contact HR at **hr@haircare2u.my** or call **+60 12-345 6790**.\n\nLet me know if I can assist you further!","usage":{"completion_tokens":241,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":298,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":539}}
+[26-Aug-2025 18:18:11 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:18:11 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:21:18 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:21:18 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"im sick, what can i do?"}
+[26-Aug-2025 18:21:18 Europe/Berlin] Chatbot Handler - User message: im sick, what can i do?
+[26-Aug-2025 18:21:18 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:21:18 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:21:18 Europe/Berlin] FAQ Check - Searching for: im sick, what can i do?
+[26-Aug-2025 18:21:18 Europe/Berlin] FAQ Check - No match found
+[26-Aug-2025 18:21:18 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[26-Aug-2025 18:21:24 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"Hi John, I'm sorry to hear that you're feeling unwell. Here are the steps you can take:\n\n1. **Notify Your Manager**: Inform your direct manager or team lead as soon as possible about your situation. It's important to keep them in the loop about your absence.\n\n2. **Apply for Medical Leave**: \n   - Check with HR or use the company portal (if available) to submit a formal medical leave application.\n   - You are entitled to 14 days of medical leave per year.\n\n3. **Doctor's Certificate**: If you're taking more than one day off, or if your manager requests it, you may need to provide a medical certificate from a doctor. \n\n4. **Contact HR if Needed**: If you have any questions about the process, you can email HR at **hr@haircare2u.my** or call them at **+60 12-345 6790**.\n\nTake care, rest well, and let me know if you need further assistance!","usage":{"completion_tokens":205,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":403,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":608}}
+[26-Aug-2025 18:21:24 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:21:24 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:24:49 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:24:49 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"im sick, what can i do?"}
+[26-Aug-2025 18:24:49 Europe/Berlin] Chatbot Handler - User message: im sick, what can i do?
+[26-Aug-2025 18:24:49 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:24:49 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:24:49 Europe/Berlin] FAQ Check - Searching for: im sick, what can i do?
+[26-Aug-2025 18:24:49 Europe/Berlin] FAQ Check - No match found
+[26-Aug-2025 18:24:49 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[26-Aug-2025 18:24:54 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"I'm sorry to hear you're not feeling well, John. Here's what you can do regarding sick leave at HairCare2U:\n\n---\n\n### **Steps to Take When You're Sick**\n\n1. **Notify Your Manager**  \n   Inform your manager as soon as possible about your situation. You can do this via email, a phone call, or any communication method you usually use.\n\n2. **Log Your Sick Leave**  \n   Submit your sick leave request in the company's HR system. If you're unsure how to do this, contact HR for assistance:\n   - **Email:** hr@haircare2u.my  \n   - **Phone:** +60 12-345 6790  \n\n3. **Provide a Medical Certificate (if needed)**  \n   - If you are sick for **2 or more consecutive days**, you\u2019ll need to submit a medical certificate from a doctor.  \n   - You can send this directly to HR or upload it to the HR system.\n\n4. **Rest and Recover**  \n   Focus on your health and ensure you take the time to recover before returning to work.\n\n---\n\n### **Medical Leave Policy Reminder**\n- **Entitlement:** 14 days of medical leave per year.  \n- **Documentation:** Medical certificate required for absences of 2+ consecutive days.  \n\n---\n\nIf you need further assistance or have trouble logging your sick leave, feel free to let me know or contact HR directly. Wishing you a speedy recovery!","usage":{"completion_tokens":292,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":966,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":1258}}
+[26-Aug-2025 18:24:54 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:24:54 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:25:15 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:25:15 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"who is my supervisor"}
+[26-Aug-2025 18:25:15 Europe/Berlin] Chatbot Handler - User message: who is my supervisor
+[26-Aug-2025 18:25:15 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:25:15 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:25:15 Europe/Berlin] FAQ Check - Searching for: who is my supervisor
+[26-Aug-2025 18:25:15 Europe/Berlin] FAQ Check - No match found
+[26-Aug-2025 18:25:15 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[26-Aug-2025 18:25:20 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"As a Software Developer in the IT Department, your direct supervisor would typically be the **IT Manager**. However, specific names may not always be listed in the system.\n\nTo confirm your supervisor's name, you can:  \n1. Check your onboarding documents or welcome email.  \n2. Contact the **HR Department** at hr@haircare2u.my or +60 12-345 6790 for clarification.  \n3. Reach out to your **IT Department's administrative contact** at it@company.com for assistance.  \n\nLet me know if you'd like help with anything else!","usage":{"completion_tokens":120,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":962,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":1082}}
+[26-Aug-2025 18:25:20 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:25:20 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:30:05 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:30:05 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"hello hello"}
+[26-Aug-2025 18:30:05 Europe/Berlin] Chatbot Handler - User message: hello hello
+[26-Aug-2025 18:30:05 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:30:05 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:30:05 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[26-Aug-2025 18:30:07 Europe/Berlin] Chatbot API Error: Invalid JSON response from API
+[26-Aug-2025 18:30:07 Europe/Berlin] Chatbot Handler - API result: {"success":false,"error":"Invalid JSON response from API","response":"I apologize, but I'm having technical difficulties right now. Please contact HR directly at hr@haircare2u.my for immediate assistance."}
+[26-Aug-2025 18:30:07 Europe/Berlin] Chatbot Handler - API error: Invalid JSON response from API
+[26-Aug-2025 18:30:07 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:30:07 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:30:39 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:30:39 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"hello"}
+[26-Aug-2025 18:30:39 Europe/Berlin] Chatbot Handler - User message: hello
+[26-Aug-2025 18:30:39 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:30:39 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:30:39 Europe/Berlin] Chatbot Handler - FAQ match found
+[26-Aug-2025 18:30:39 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:30:39 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:30:41 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:30:41 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"hellohello"}
+[26-Aug-2025 18:30:41 Europe/Berlin] Chatbot Handler - User message: hellohello
+[26-Aug-2025 18:30:41 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:30:41 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:30:41 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[26-Aug-2025 18:30:43 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"Hello, John! \ud83d\ude0a  \n\nHow can I assist you today? Whether it\u2019s about onboarding, company policies, or anything HR-related, feel free to let me know!","usage":{"completion_tokens":35,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":960,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":995}}
+[26-Aug-2025 18:30:43 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:30:43 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:30:47 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:30:47 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"hihi"}
+[26-Aug-2025 18:30:47 Europe/Berlin] Chatbot Handler - User message: hihi
+[26-Aug-2025 18:30:47 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:30:47 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:30:47 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[26-Aug-2025 18:30:49 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"Hello, John! \ud83d\ude0a\n\nHow can I assist you today? Whether it\u2019s about onboarding, company policies, or anything else, I\u2019m here to help!","usage":{"completion_tokens":33,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":960,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":993}}
+[26-Aug-2025 18:30:49 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:30:49 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:30:52 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:30:52 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"im sick"}
+[26-Aug-2025 18:30:52 Europe/Berlin] Chatbot Handler - User message: im sick
+[26-Aug-2025 18:30:52 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:30:52 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:30:52 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[26-Aug-2025 18:30:58 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"I'm sorry to hear that you're not feeling well, John. Here\u2019s what you need to know about taking medical leave:\n\n---\n\n### **Medical Leave Policy**\n1. **Entitlement:** You are entitled to 14 days of medical leave per year.\n2. **Documentation:** \n   - If you're taking 1 day of medical leave, no medical certificate is required.\n   - For 2 or more consecutive days, a **medical certificate (MC)** is required.\n3. **Notification:** Inform your manager or HR as soon as possible to ensure proper documentation.\n\n---\n\n### **Steps to Apply for Medical Leave**\n1. Notify your manager (via email or phone) about your medical leave.\n2. Submit your medical certificate (if applicable) to HR at **hr@haircare2u.my**.\n3. Update your leave status in the company\u2019s leave management system (if applicable).\n\n---\n\nIf you need further assistance, feel free to contact:\n- **HR Department:**  \n  Email: hr@haircare2u.my  \n  Phone: +60 12-345 6790  \n\nTake care, and I hope you feel better soon! Let me know if you need help with anything else.","usage":{"completion_tokens":244,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":960,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":1204}}
+[26-Aug-2025 18:30:58 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:30:58 Europe/Berlin] Chatbot Handler - Response sent successfully
+[26-Aug-2025 18:31:04 Europe/Berlin] Chatbot Handler - Request Method: POST
+[26-Aug-2025 18:31:04 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"i hate my boss"}
+[26-Aug-2025 18:31:04 Europe/Berlin] Chatbot Handler - User message: i hate my boss
+[26-Aug-2025 18:31:04 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[26-Aug-2025 18:31:04 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[26-Aug-2025 18:31:04 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[26-Aug-2025 18:31:11 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"I'm sorry to hear you're feeling this way, John. It\u2019s important to address workplace concerns constructively to ensure a positive and productive environment for yourself and others. Here are some steps you can consider:\n\n---\n\n### **1. Reflect on the Situation**\n- Identify the specific reasons for your feelings. Is it related to communication, workload, or management style?\n- Consider if there are any patterns or specific incidents that caused this feeling.\n\n---\n\n### **2. Open Communication**\n- If you're comfortable, try having a professional and respectful conversation with your boss to express your concerns. Focus on facts and avoid personal criticisms.\n- Use \"I\" statements (e.g., \"I feel overwhelmed when deadlines aren\u2019t clear\") to communicate effectively.\n\n---\n\n### **3. Seek Support**\n- Talk to HR for guidance on how to handle the situation. They can offer advice or mediate if necessary.\n  - **HR Contact:** hr@haircare2u.my | +60 12-345 6790\n\n---\n\n### **4. Manage Stress**\n- Take time to focus on self-care and stress management techniques, such as exercise, mindfulness, or talking to a trusted colleague or friend.\n\n---\n\n### **5. Document Incidents (If Necessary)**\n- If there are specific problematic behaviors, document them with dates and details. This can help you provide clear examples if you decide to escalate the issue.\n\n---\n\n### **6. Explore Options**\n- If the situation doesn\u2019t improve, discuss your career goals","usage":{"completion_tokens":300,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":962,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":1262}}
+[26-Aug-2025 18:31:11 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[26-Aug-2025 18:31:11 Europe/Berlin] Chatbot Handler - Response sent successfully
+[27-Aug-2025 09:12:11 Europe/Berlin] Chatbot Handler - Request Method: POST
+[27-Aug-2025 09:12:11 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"General HR inquiries"}
+[27-Aug-2025 09:12:11 Europe/Berlin] Chatbot Handler - User message: General HR inquiries
+[27-Aug-2025 09:12:11 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[27-Aug-2025 09:12:11 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[27-Aug-2025 09:12:11 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[27-Aug-2025 09:12:17 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"Hi John! How can I assist you with your HR-related inquiry today? Below are some common topics I can help you with:\n\n### **Common HR Topics**\n- **Onboarding Process:**\n  \u2022 Guidance on completing onboarding tasks  \n  \u2022 Document submission requirements  \n\n- **Company Policies:**\n  \u2022 Leave policies (annual, medical, maternity, paternity, etc.)  \n  \u2022 Work schedule, remote work, and dress code details  \n\n- **Benefits Information:**\n  \u2022 Health coverage, bonuses, and perks  \n  \u2022 Professional development opportunities  \n\n- **Leave and Time Off:**\n  \u2022 How to apply for leave  \n  \u2022 Emergency leave procedures  \n\n- **Training and Development:**\n  \u2022 Mandatory training modules  \n  \u2022 Access to professional development courses  \n\n- **Contact Information:**\n  \u2022 HR, IT support, and other departmental contacts  \n\nIf your question isn't listed here, feel free to ask! I'm here to help. \ud83d\ude0a","usage":{"completion_tokens":191,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":961,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":1152}}
+[27-Aug-2025 09:12:17 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[27-Aug-2025 09:12:17 Europe/Berlin] Chatbot Handler - Response sent successfully
+[27-Aug-2025 09:12:36 Europe/Berlin] Chatbot Handler - Request Method: POST
+[27-Aug-2025 09:12:36 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"hello"}
+[27-Aug-2025 09:12:36 Europe/Berlin] Chatbot Handler - User message: hello
+[27-Aug-2025 09:12:36 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[27-Aug-2025 09:12:36 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[27-Aug-2025 09:12:36 Europe/Berlin] Chatbot Handler - FAQ match found
+[27-Aug-2025 09:12:36 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[27-Aug-2025 09:12:36 Europe/Berlin] Chatbot Handler - Response sent successfully
+[27-Aug-2025 09:12:40 Europe/Berlin] Chatbot Handler - Request Method: POST
+[27-Aug-2025 09:12:40 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"im sick"}
+[27-Aug-2025 09:12:40 Europe/Berlin] Chatbot Handler - User message: im sick
+[27-Aug-2025 09:12:40 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[27-Aug-2025 09:12:40 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[27-Aug-2025 09:12:40 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[27-Aug-2025 09:12:47 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"I'm sorry to hear that you're feeling unwell, John. Here\u2019s what you need to know about **taking medical leave** at HairCare2U:\n\n### **Medical Leave Guidelines**\n1. **Notify Your Manager:**\n   - Inform your manager as soon as possible about your situation.\n   - Provide an estimated duration of your absence.\n\n2. **Medical Certificate (MC):**\n   - If you are on medical leave for **two or more consecutive days**, you will need to provide a valid medical certificate from a registered doctor.\n   - Submit the MC to HR via email at **hr@haircare2u.my** or directly through your manager.\n\n3. **HR Notification:**\n   - Send an email to HR (hr@haircare2u.my) to formally notify them of your medical leave.\n   - Mention your full name, employee ID (if applicable), and the dates you\u2019ll be absent.\n\n4. **Record Keeping:**\n   - Your medical leave balance is **14 days per year**.\n\n---\n\nIf you need further assistance or if this is an urgent matter, you can:\n- Contact HR directly at **+60 12-345 6790**.\n- Reach out to your manager for immediate help.\n\nTake care of yourself, and let me know if you need help with anything else!","usage":{"completion_tokens":268,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":960,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":1228}}
+[27-Aug-2025 09:12:47 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[27-Aug-2025 09:12:47 Europe/Berlin] Chatbot Handler - Response sent successfully
+[27-Aug-2025 09:18:30 Europe/Berlin] Chatbot Handler - Request Method: POST
+[27-Aug-2025 09:18:30 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"hate"}
+[27-Aug-2025 09:18:30 Europe/Berlin] Chatbot Handler - User message: hate
+[27-Aug-2025 09:18:30 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[27-Aug-2025 09:18:30 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[27-Aug-2025 09:18:30 Europe/Berlin] Chatbot Handler - FAQ match found
+[27-Aug-2025 09:18:30 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[27-Aug-2025 09:18:30 Europe/Berlin] Chatbot Handler - Response sent successfully
+[27-Aug-2025 09:19:13 Europe/Berlin] Chatbot Handler - Request Method: POST
+[27-Aug-2025 09:19:13 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"i hate my boss"}
+[27-Aug-2025 09:19:13 Europe/Berlin] Chatbot Handler - User message: i hate my boss
+[27-Aug-2025 09:19:13 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[27-Aug-2025 09:19:13 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[27-Aug-2025 09:19:13 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[27-Aug-2025 09:19:20 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"I'm sorry to hear you're feeling this way, John. Workplace challenges can be tough, but I'm here to help you navigate them professionally. If you're comfortable, here are a few suggestions to handle the situation constructively:\n\n---\n\n### **1. Reflect on the Issues**\n- Try to identify specific behaviors or situations that are causing frustration.\n- Reflect on whether it's a communication issue, workload imbalance, or differing expectations.\n\n---\n\n### **2. Communicate Professionally**\n- If you feel safe doing so, consider scheduling a private, respectful discussion with your boss to address concerns.\n- Use \"I\" statements to express how you feel (e.g., \"I feel overwhelmed when deadlines are unclear.\").\n\n---\n\n### **3. Seek Support**\n- If the issue persists, you can reach out to the **HR Department** for guidance or mediation:\n  - **Email:** hr@haircare2u.my  \n  - **Phone:** +60 12-345 6790\n\n---\n\n### **4. Focus on Self-Care**\n- Workplace stress can take a toll. Ensure you're taking breaks, managing your workload, and seeking support from colleagues or mentors.\n\n---\n\nIf you'd like, I can also provide information on workplace conflict resolution training or guide you on how to formally raise concerns. Let me know how I can assist further!","usage":{"completion_tokens":267,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":962,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":1229}}
+[27-Aug-2025 09:19:20 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[27-Aug-2025 09:19:20 Europe/Berlin] Chatbot Handler - Response sent successfully
+[27-Aug-2025 09:21:30 Europe/Berlin] Chatbot Handler - Request Method: POST
+[27-Aug-2025 09:21:30 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"hello"}
+[27-Aug-2025 09:21:30 Europe/Berlin] Chatbot Handler - User message: hello
+[27-Aug-2025 09:21:30 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[27-Aug-2025 09:21:30 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[27-Aug-2025 09:21:30 Europe/Berlin] Chatbot Handler - FAQ match found
+[27-Aug-2025 09:21:30 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[27-Aug-2025 09:21:30 Europe/Berlin] Chatbot Handler - Response sent successfully
+[27-Aug-2025 09:22:18 Europe/Berlin] Chatbot Handler - Request Method: POST
+[27-Aug-2025 09:22:18 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"who is the third prophet"}
+[27-Aug-2025 09:22:18 Europe/Berlin] Chatbot Handler - User message: who is the third prophet
+[27-Aug-2025 09:22:18 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[27-Aug-2025 09:22:18 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[27-Aug-2025 09:22:18 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[27-Aug-2025 09:22:21 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"It seems like your question is related to religious or historical context, which falls outside the scope of HairCare2U's HR system. I'm here to assist you with onboarding, policies, and HR-related topics.\n\nIf you need help with something related to your role at HairCare2U or company policies, feel free to ask. \ud83d\ude0a","usage":{"completion_tokens":68,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":963,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":1031}}
+[27-Aug-2025 09:22:21 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[27-Aug-2025 09:22:21 Europe/Berlin] Chatbot Handler - Response sent successfully
+[27-Aug-2025 16:44:24 Europe/Berlin] Chatbot Handler - Request Method: POST
+[27-Aug-2025 16:44:24 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"im sick"}
+[27-Aug-2025 16:44:24 Europe/Berlin] Chatbot Handler - User message: im sick
+[27-Aug-2025 16:44:24 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[27-Aug-2025 16:44:24 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[27-Aug-2025 16:44:24 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[27-Aug-2025 16:44:31 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"I'm sorry to hear that you're feeling unwell, John. Here\u2019s what you need to know about taking medical leave at HairCare2U:\n\n### **Medical Leave Policy**\n1. **Entitlement**: You are entitled to 14 days of medical leave per year.\n2. **Documentation**: If you\u2019re on medical leave for **2 or more consecutive days**, you\u2019ll need to provide a **medical certificate** from a registered doctor.\n3. **Notification**: Notify your manager or HR as soon as possible about your absence.\n\n### **Steps to Take**\n1. Inform your immediate manager via email, chat, or call about your condition and the expected duration of your absence.\n2. Visit a registered doctor to get a medical certificate if needed.\n3. Submit the medical certificate to HR at **hr@haircare2u.my** after your recovery.\n\nIf you have any difficulties or need further assistance, feel free to:\n- Contact HR: **hr@haircare2u.my** | **+60 12-345 6790**\n\nTake care, and I hope you feel better soon! Let me know if you need help with anything else.","usage":{"completion_tokens":237,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":960,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":1197}}
+[27-Aug-2025 16:44:31 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[27-Aug-2025 16:44:31 Europe/Berlin] Chatbot Handler - Response sent successfully
+[27-Aug-2025 16:44:32 Europe/Berlin] Chatbot Handler - Request Method: POST
+[27-Aug-2025 16:44:32 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"i hate my boss"}
+[27-Aug-2025 16:44:32 Europe/Berlin] Chatbot Handler - User message: i hate my boss
+[27-Aug-2025 16:44:32 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[27-Aug-2025 16:44:32 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[27-Aug-2025 16:44:32 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[27-Aug-2025 16:44:40 Europe/Berlin] Chatbot Handler - API result: {"success":true,"response":"I'm sorry to hear that you're feeling this way, John. Workplace relationships can sometimes be challenging, but it's important to address these feelings constructively. Here are some steps you can consider:\n\n---\n\n### **1. Reflect on the Situation**\n- Take some time to identify the specific reasons you're feeling this way.\n- Is it related to communication, workload, recognition, or something else? Pinpointing the issue can help you find solutions.\n\n---\n\n### **2. Open Communication**\n- If you feel comfortable, try discussing your concerns with your boss directly. Approach the conversation professionally and focus on solutions rather than blame.\n- Use \"I\" statements (e.g., \"I feel overwhelmed when...\") to express yourself without sounding accusatory.\n\n---\n\n### **3. Seek Advice**\n- If you're unsure how to approach the situation, consider reaching out to a trusted colleague or mentor for guidance.\n- The HR department is also available to provide support and help mediate workplace issues. You can contact them at:\n  - **Email:** hr@haircare2u.my\n  - **Phone:** +60 12-345 6790\n\n---\n\n### **4. Practice Self-Care**\n- Managing workplace stress is essential. Take breaks, focus on your well-being, and engage in activities that help you relax outside of work.\n\n---\n\n### **5. Consider Escalation (If Necessary)**\n- If the situation is negatively impacting your work or mental health and cannot be resolved directly, HR can","usage":{"completion_tokens":300,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":962,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":1262}}
+[27-Aug-2025 16:44:40 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[27-Aug-2025 16:44:40 Europe/Berlin] Chatbot Handler - Response sent successfully
+[27-Aug-2025 16:47:50 Europe/Berlin] Chatbot Handler - Request Method: POST
+[27-Aug-2025 16:47:50 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"Can I kill my boss"}
+[27-Aug-2025 16:47:50 Europe/Berlin] Chatbot Handler - User message: Can I kill my boss
+[27-Aug-2025 16:47:50 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[27-Aug-2025 16:47:50 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[27-Aug-2025 16:47:50 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[27-Aug-2025 16:47:58 Europe/Berlin] API Error Response: {"error":{"message":"The response was filtered due to the prompt triggering Azure OpenAI's content management policy. Please modify your prompt and retry. To learn more about our content filtering policies please read our documentation: https://go.microsoft.com/fwlink/?linkid=2198766","type":null,"param":"prompt","code":"content_filter","status":400,"innererror":{"code":"ResponsibleAIPolicyViolation","content_filter_result":{"hate":{"filtered":false,"severity":"safe"},"jailbreak":{"filtered":false,"detected":false},"self_harm":{"filtered":false,"severity":"safe"},"sexual":{"filtered":false,"severity":"safe"},"violence":{"filtered":true,"severity":"medium"}}}}}
+[27-Aug-2025 16:47:58 Europe/Berlin] Chatbot API Error: The response was filtered due to the prompt triggering Azure OpenAI's content management policy. Please modify your prompt and retry. To learn more about our content filtering policies please read our documentation: https://go.microsoft.com/fwlink/?linkid=2198766
+[27-Aug-2025 16:47:58 Europe/Berlin] Chatbot Handler - API result: {"success":false,"error":"The response was filtered due to the prompt triggering Azure OpenAI's content management policy. Please modify your prompt and retry. To learn more about our content filtering policies please read our documentation: https:\/\/go.microsoft.com\/fwlink\/?linkid=2198766","response":"I apologize, but I'm having technical difficulties right now. Please contact HR directly at hr@haircare2u.my for immediate assistance."}
+[27-Aug-2025 16:47:58 Europe/Berlin] Chatbot Handler - API error: The response was filtered due to the prompt triggering Azure OpenAI's content management policy. Please modify your prompt and retry. To learn more about our content filtering policies please read our documentation: https://go.microsoft.com/fwlink/?linkid=2198766
+[27-Aug-2025 16:47:58 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[27-Aug-2025 16:47:58 Europe/Berlin] Chatbot Handler - Response sent successfully
+[27-Aug-2025 16:48:07 Europe/Berlin] Chatbot Handler - Request Method: POST
+[27-Aug-2025 16:48:07 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"can i kill u?"}
+[27-Aug-2025 16:48:07 Europe/Berlin] Chatbot Handler - User message: can i kill u?
+[27-Aug-2025 16:48:07 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[27-Aug-2025 16:48:07 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[27-Aug-2025 16:48:07 Europe/Berlin] Chatbot Handler - No FAQ match, trying API
+[27-Aug-2025 16:48:10 Europe/Berlin] API Error Response: {"error":{"message":"The response was filtered due to the prompt triggering Azure OpenAI's content management policy. Please modify your prompt and retry. To learn more about our content filtering policies please read our documentation: https://go.microsoft.com/fwlink/?linkid=2198766","type":null,"param":"prompt","code":"content_filter","status":400,"innererror":{"code":"ResponsibleAIPolicyViolation","content_filter_result":{"hate":{"filtered":false,"severity":"safe"},"jailbreak":{"filtered":false,"detected":false},"self_harm":{"filtered":false,"severity":"safe"},"sexual":{"filtered":false,"severity":"safe"},"violence":{"filtered":true,"severity":"medium"}}}}}
+[27-Aug-2025 16:48:10 Europe/Berlin] Chatbot API Error: The response was filtered due to the prompt triggering Azure OpenAI's content management policy. Please modify your prompt and retry. To learn more about our content filtering policies please read our documentation: https://go.microsoft.com/fwlink/?linkid=2198766
+[27-Aug-2025 16:48:10 Europe/Berlin] Chatbot Handler - API result: {"success":false,"error":"The response was filtered due to the prompt triggering Azure OpenAI's content management policy. Please modify your prompt and retry. To learn more about our content filtering policies please read our documentation: https:\/\/go.microsoft.com\/fwlink\/?linkid=2198766","response":"I apologize, but I'm having technical difficulties right now. Please contact HR directly at hr@haircare2u.my for immediate assistance."}
+[27-Aug-2025 16:48:10 Europe/Berlin] Chatbot Handler - API error: The response was filtered due to the prompt triggering Azure OpenAI's content management policy. Please modify your prompt and retry. To learn more about our content filtering policies please read our documentation: https://go.microsoft.com/fwlink/?linkid=2198766
+[27-Aug-2025 16:48:10 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[27-Aug-2025 16:48:10 Europe/Berlin] Chatbot Handler - Response sent successfully
+[27-Aug-2025 16:48:12 Europe/Berlin] Chatbot Handler - Request Method: POST
+[27-Aug-2025 16:48:12 Europe/Berlin] Chatbot Handler - Raw Input: {"message":"hi"}
+[27-Aug-2025 16:48:12 Europe/Berlin] Chatbot Handler - User message: hi
+[27-Aug-2025 16:48:12 Europe/Berlin] Chatbot Handler - Processing message for user ID: 9
+[27-Aug-2025 16:48:12 Europe/Berlin] Chatbot Handler - User context: {"name":"John Doe","department":"IT","role":"employee","job_title":"Software Developer","join_date":"2025-08-19 00:05:04"}
+[27-Aug-2025 16:48:12 Europe/Berlin] Chatbot Handler - FAQ match found
+[27-Aug-2025 16:48:12 Europe/Berlin] Chatbot Handler - Conversation logged successfully
+[27-Aug-2025 16:48:12 Europe/Berlin] Chatbot Handler - Response sent successfully
