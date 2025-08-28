@@ -9,17 +9,14 @@ function isLoggedIn() {
 
 // Login function
 function login($username, $password) {
-    global $connection;
+    global $pdo;
     
     try {
-        $stmt = $connection->prepare("SELECT id, username, password, full_name, email, role, status, department, job_position_id FROM users WHERE username = ? AND status = 'active'");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $stmt = $pdo->prepare("SELECT id, username, password, full_name, email, role, status, department, job_position_id FROM users WHERE username = ? AND status = 'active'");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch();
         
-        if ($result->num_rows === 1) {
-            $user = $result->fetch_assoc();
-            
+        if ($user) {
             // Check if password is hashed or plaintext
             $password_valid = false;
             
@@ -33,9 +30,8 @@ function login($username, $password) {
                 
                 // Optional: Update to hashed password for security
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                $update_stmt = $connection->prepare("UPDATE users SET password = ? WHERE id = ?");
-                $update_stmt->bind_param("si", $hashed_password, $user['id']);
-                $update_stmt->execute();
+                $update_stmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
+                $update_stmt->execute([$hashed_password, $user['id']]);
             }
             
             if ($password_valid) {
@@ -73,20 +69,15 @@ function checkRoleTransition($connection = null) {
         return false;
     }
     
-    if (!$connection) {
-        global $connection;
-    }
-    
+    global $pdo;
     $user_id = $_SESSION['user_id'];
     
     try {
-        $stmt = $connection->prepare("SELECT role, department, job_position_id, full_name, email FROM users WHERE id = ?");
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $stmt = $pdo->prepare("SELECT role, department, job_position_id, full_name, email FROM users WHERE id = ?");
+        $stmt->execute([$user_id]);
+        $user_data = $stmt->fetch();
         
-        if ($result->num_rows > 0) {
-            $user_data = $result->fetch_assoc();
+        if ($user_data) {
             $current_role = $_SESSION['role'];
             $actual_role = $user_data['role'];
             
@@ -118,7 +109,7 @@ function checkRoleTransition($connection = null) {
 
 // Require specific role with automatic role transition detection
 function requireRole($required_role) {
-    global $connection;
+    global $pdo;
     
     if (!isLoggedIn()) {
         header('Location: index.php');
@@ -126,7 +117,7 @@ function requireRole($required_role) {
     }
     
     // Check for role transitions first
-    $new_role = checkRoleTransition($connection);
+    $new_role = checkRoleTransition();
     
     // If role has changed, redirect to appropriate dashboard
     if ($new_role && $new_role !== $required_role) {
@@ -234,26 +225,20 @@ function getUserJobPositionId() {
 }
 
 // Refresh user session data from database
-function refreshUserSession($connection = null) {
+function refreshUserSession() {
     if (!isLoggedIn()) {
         return false;
     }
     
-    if (!$connection) {
-        global $connection;
-    }
-    
+    global $pdo;
     $user_id = $_SESSION['user_id'];
     
     try {
-        $stmt = $connection->prepare("SELECT role, department, job_position_id, full_name, email FROM users WHERE id = ?");
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $stmt = $pdo->prepare("SELECT role, department, job_position_id, full_name, email FROM users WHERE id = ?");
+        $stmt->execute([$user_id]);
+        $user = $stmt->fetch();
         
-        if ($result->num_rows > 0) {
-            $user = $result->fetch_assoc();
-            
+        if ($user) {
             // Update session with current data
             $_SESSION['role'] = $user['role'];
             $_SESSION['department'] = $user['department'];
@@ -271,12 +256,10 @@ function refreshUserSession($connection = null) {
 }
 
 // Handle role redirect - call this at the beginning of protected pages
-function handleRoleRedirect($connection = null, $current_page = '') {
-    if (!$connection) {
-        global $connection;
-    }
+function handleRoleRedirect($current_page = '') {
+    global $pdo;
     
-    $new_role = checkRoleTransition($connection);
+    $new_role = checkRoleTransition();
     
     if ($new_role) {
         // Role has changed, redirect to appropriate dashboard
@@ -324,24 +307,17 @@ function isHR() {
 }
 
 // Get user's job position details
-function getUserJobPosition($connection = null) {
+function getUserJobPosition() {
     if (!isLoggedIn() || !$_SESSION['job_position_id']) {
         return null;
     }
     
-    if (!$connection) {
-        global $connection;
-    }
+    global $pdo;
     
     try {
-        $stmt = $connection->prepare("SELECT * FROM job_positions WHERE id = ?");
-        $stmt->bind_param("i", $_SESSION['job_position_id']);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows > 0) {
-            return $result->fetch_assoc();
-        }
+        $stmt = $pdo->prepare("SELECT * FROM job_positions WHERE id = ?");
+        $stmt->execute([$_SESSION['job_position_id']]);
+        return $stmt->fetch();
     } catch (Exception $e) {
         error_log("Error getting user job position: " . $e->getMessage());
     }
@@ -351,13 +327,12 @@ function getUserJobPosition($connection = null) {
 
 // Create new user account (for HR to create employees)
 function createUser($username, $email, $password, $full_name, $role = 'candidate', $department = null, $job_position_id = null) {
-    global $connection;
+    global $pdo;
     
     try {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $connection->prepare("INSERT INTO users (username, email, password, full_name, role, department, job_position_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssssssi", $username, $email, $hashed_password, $full_name, $role, $department, $job_position_id);
-        return $stmt->execute();
+        $stmt = $pdo->prepare("INSERT INTO users (username, email, password, full_name, role, department, job_position_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        return $stmt->execute([$username, $email, $hashed_password, $full_name, $role, $department, $job_position_id]);
     } catch(Exception $e) {
         error_log("Create user error: " . $e->getMessage());
         return false;
@@ -371,37 +346,34 @@ function generatePassword($length = 8) {
 }
 
 // Log user activity (optional - for audit trail)
-function logUserActivity($action, $details = '', $connection = null) {
+function logUserActivity($action, $details = '') {
     if (!isLoggedIn()) {
         return false;
     }
     
-    if (!$connection) {
-        global $connection;
-    }
+    global $pdo;
     
     try {
-        // Create activity log table if it doesn't exist
-        $connection->query("
+        // Create activity log table if it doesn't exist (PostgreSQL syntax)
+        $pdo->exec("
             CREATE TABLE IF NOT EXISTS user_activity_log (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
                 action VARCHAR(255) NOT NULL,
                 details TEXT,
-                ip_address VARCHAR(45),
+                ip_address INET,
                 user_agent TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             )
         ");
         
-        $stmt = $connection->prepare("INSERT INTO user_activity_log (user_id, action, details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO user_activity_log (user_id, action, details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)");
         $user_id = $_SESSION['user_id'];
         $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
         
-        $stmt->bind_param("issss", $user_id, $action, $details, $ip_address, $user_agent);
-        return $stmt->execute();
+        return $stmt->execute([$user_id, $action, $details, $ip_address, $user_agent]);
     } catch (Exception $e) {
         error_log("Error logging user activity: " . $e->getMessage());
         return false;
