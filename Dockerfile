@@ -4,16 +4,23 @@ FROM php:8.1-apache
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     libzip-dev \
+    libsqlite3-dev \
+    default-mysql-client \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
+# Install PHP extensions including all common database drivers
 RUN docker-php-ext-install \
     pdo \
     pdo_mysql \
     pdo_pgsql \
+    pdo_sqlite \
     mysqli \
-    zip
+    zip \
+    opcache
+
+# Verify extensions are loaded (this will show in build logs)
+RUN php -m | grep -i pdo
 
 # Copy your PHP files to the web directory
 COPY . /var/www/html/
