@@ -1,6 +1,5 @@
 <?php
 // Database connection file - PostgreSQL version
-
 // Only define constants if they haven't been defined yet
 if (!defined('DB_HOST')) {
     define('DB_HOST', $_ENV['DATABASE_HOST'] ?? 'localhost');
@@ -33,7 +32,8 @@ try {
         ]
     );
     
-    echo "Database connected successfully!<br>";
+    // Remove this echo in production - only for testing
+    // echo "Database connected successfully!<br>";
     
 } catch (PDOException $e) {
     die("PostgreSQL Database connection error: " . $e->getMessage());
