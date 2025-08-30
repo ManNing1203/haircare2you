@@ -12,7 +12,7 @@ if (!isLoggedIn()) {
 }
 
 // Check database connection
-if (!isset($connection) || $connection->connect_error) {
+if (!isset($pdo)) {
     die("Database connection failed. Please check your database configuration.");
 }
 
@@ -22,19 +22,16 @@ requireRole('hr');
 // Get onboarding statistics with proper error handling
 try {
     // Total employees
-    $stmt = $connection->query("SELECT COUNT(*) as total FROM users WHERE role = 'employee'");
-    if ($stmt === false) {
-        throw new Exception("Failed to count employees: " . $connection->error);
-    }
-    $total_employees = $stmt->fetch_assoc()['total'];
+    $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'employee'");
+    $total_employees = $stmt->fetchColumn();
     
-    // Check if department column exists, if not, treat all users as 'ALL' department
-    $column_check = $connection->query("SHOW COLUMNS FROM users LIKE 'department'");
-    $has_department_column = $column_check && $column_check->num_rows > 0;
+    // Check if department column exists
+    $stmt = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'department'");
+    $has_department_column = $stmt->fetch() !== false;
     
     if ($has_department_column) {
         // Use department filtering if column exists
-        $stmt = $connection->query("
+        $stmt = $pdo->query("
             SELECT 
                 u.id,
                 u.full_name,
@@ -53,10 +50,10 @@ try {
                 END as status,
                 CASE 
                     WHEN COUNT(ot.id) = 0 THEN 0
-                    ELSE ROUND((SUM(CASE WHEN eo.status = 'completed' THEN 1 ELSE 0 END) / COUNT(ot.id)) * 100)
+                    ELSE ROUND((SUM(CASE WHEN eo.status = 'completed' THEN 1 ELSE 0 END)::numeric / COUNT(ot.id)) * 100)
                 END as progress_percentage
             FROM users u
-            LEFT JOIN onboarding_tasks ot ON (ot.department = 'ALL' OR ot.department = COALESCE(u.department, 'ALL')) AND ot.is_mandatory = 1
+            LEFT JOIN onboarding_tasks ot ON (ot.department = 'ALL' OR ot.department = COALESCE(u.department, 'ALL')) AND ot.is_mandatory = true
             LEFT JOIN employee_onboarding eo ON u.id = eo.employee_id AND ot.id = eo.task_id
             WHERE u.role = 'employee'
             GROUP BY u.id, u.full_name, u.email, u.username, u.department, u.created_at
@@ -64,7 +61,7 @@ try {
         ");
     } else {
         // Fallback: No department filtering (show all mandatory tasks to all employees)
-        $stmt = $connection->query("
+        $stmt = $pdo->query("
             SELECT 
                 u.id,
                 u.full_name,
@@ -83,10 +80,10 @@ try {
                 END as status,
                 CASE 
                     WHEN COUNT(ot.id) = 0 THEN 0
-                    ELSE ROUND((SUM(CASE WHEN eo.status = 'completed' THEN 1 ELSE 0 END) / COUNT(ot.id)) * 100)
+                    ELSE ROUND((SUM(CASE WHEN eo.status = 'completed' THEN 1 ELSE 0 END)::numeric / COUNT(ot.id)) * 100)
                 END as progress_percentage
             FROM users u
-            LEFT JOIN onboarding_tasks ot ON ot.is_mandatory = 1
+            LEFT JOIN onboarding_tasks ot ON ot.is_mandatory = true
             LEFT JOIN employee_onboarding eo ON u.id = eo.employee_id AND ot.id = eo.task_id
             WHERE u.role = 'employee'
             GROUP BY u.id, u.full_name, u.email, u.username, u.created_at
@@ -94,11 +91,7 @@ try {
         ");
     }
     
-    if ($stmt === false) {
-        throw new Exception("Failed to fetch employee onboarding data: " . $connection->error);
-    }
-    
-    $employees = $stmt->fetch_all(MYSQLI_ASSOC);
+    $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Calculate statistics
     $completed_onboarding = 0;
@@ -970,4 +963,5 @@ try {
         }, 5000);
     </script>
 </body>
+
 </html>
