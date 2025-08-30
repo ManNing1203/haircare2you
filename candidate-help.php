@@ -1,4 +1,5 @@
 <?php
+
 session_start();
 require_once 'includes/config.php';
 require_once 'includes/db.php';
@@ -22,24 +23,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_inquiry'])) {
     if (empty($subject) || empty($message)) {
         $contact_error = "Please fill in all required fields.";
     } else {
-        // Here you would typically save to database or send email
-        // For now, we'll simulate success
-        $contact_success = true;
-        
-        // In a real implementation, you might do:
-        /*
         try {
-            $stmt = $connection->prepare("INSERT INTO support_tickets (user_id, subject, message, priority, status, created_at) VALUES (?, ?, ?, ?, 'open', NOW())");
-            $stmt->bind_param("isss", $_SESSION['user_id'], $subject, $message, $priority);
+            $stmt = $pdo->prepare("INSERT INTO support_tickets (user_id, subject, message, priority, status, created_at) VALUES (?, ?, ?, ?, 'open', CURRENT_TIMESTAMP)");
             
-            if ($stmt->execute()) {
+            if ($stmt->execute([$_SESSION['user_id'], $subject, $message, $priority])) {
                 $contact_success = true;
                 
                 // Send notification email to support team
-                $to = SUPPORT_EMAIL;
-                $email_subject = "New Support Ticket: " . $subject;
-                $email_message = "New support ticket from: " . $_SESSION['full_name'] . "\n\n" . $message;
-                mail($to, $email_subject, $email_message);
+                // $to = SUPPORT_EMAIL;
+                // $email_subject = "New Support Ticket: " . $subject;
+                // $email_message = "New support ticket from: " . $_SESSION['full_name'] . "\n\n" . $message;
+                // mail($to, $email_subject, $email_message);
                 
             } else {
                 $contact_error = "Failed to submit your inquiry. Please try again.";
@@ -48,7 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_inquiry'])) {
             $contact_error = "An error occurred. Please try again later.";
             error_log("Support ticket error: " . $e->getMessage());
         }
-        */
     }
 }
 ?>
@@ -1266,4 +1259,5 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_inquiry'])) {
         });
     </script>
 </body>
+
 </html>
