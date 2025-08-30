@@ -19,4 +19,3 @@ define('EXTRACTA_API_KEY', $_ENV['EXTRACTA_API_KEY'] ?? ' ');
 define('EXTRACTA_EXTRACTION_ID', $_ENV['EXTRACTA_EXTRACTION_ID'] ?? '-OY-tgWlYrpfUxqIQqWr');
 
 ?>
-
