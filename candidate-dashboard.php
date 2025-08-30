@@ -22,7 +22,7 @@ if ($_SESSION['role'] === 'employee') {
 requireRole('candidate');
 
 // Check database connection
-if (!isset($connection) || $connection->connect_error) {
+if (!isset($pdo)) {
     die("Database connection failed. Please check your database configuration.");
 }
 
@@ -35,31 +35,23 @@ $application_created = false;
 // Fetch active job positions for dropdown
 $job_positions = [];
 try {
-    $job_query = "SELECT id, title, department, description, required_skills, experience_level FROM job_positions WHERE status = 'active' ORDER BY title ASC";
-    $job_result = $connection->query($job_query);
-    if ($job_result) {
-        while ($row = $job_result->fetch_assoc()) {
-            $job_positions[] = $row;
-        }
-    }
+    $stmt = $pdo->query("SELECT id, title, department, description, required_skills, experience_level FROM job_positions WHERE status = 'active' ORDER BY title ASC");
+    $job_positions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     error_log("Error fetching job positions: " . $e->getMessage());
 }
 
 // Check if candidate has been hired and role updated
-$role_check_stmt = $connection->prepare("SELECT role, department FROM users WHERE id = ?");
-$role_check_stmt->bind_param("i", $_SESSION['user_id']);
-$role_check_stmt->execute();
-$role_check_result = $role_check_stmt->get_result();
-if ($role_check_result->num_rows > 0) {
-    $user_data = $role_check_result->fetch_assoc();
-    if ($user_data['role'] === 'employee') {
-        // Update session and redirect
-        $_SESSION['role'] = 'employee';
-        $_SESSION['department'] = $user_data['department'];
-        header('Location: employee-dashboard.php');
-        exit;
-    }
+$stmt = $pdo->prepare("SELECT role, department FROM users WHERE id = ?");
+$stmt->execute([$_SESSION['user_id']]);
+$user_data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if ($user_data && $user_data['role'] === 'employee') {
+    // Update session and redirect
+    $_SESSION['role'] = 'employee';
+    $_SESSION['department'] = $user_data['department'];
+    header('Location: employee-dashboard.php');
+    exit;
 }
 
 // Check if form was submitted
@@ -73,24 +65,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['resume'])) {
         $processing = false;
     } else {
         // Verify job position exists and is active
-        $job_check_stmt = $connection->prepare("SELECT id, title FROM job_positions WHERE id = ? AND status = 'active'");
-        $job_check_stmt->bind_param("i", $selected_job_id);
-        $job_check_stmt->execute();
-        $job_check_result = $job_check_stmt->get_result();
+        $stmt = $pdo->prepare("SELECT id, title FROM job_positions WHERE id = ? AND status = 'active'");
+        $stmt->execute([$selected_job_id]);
+        $selected_job = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if ($job_check_result->num_rows === 0) {
+        if (!$selected_job) {
             $error = "Selected job position is not available.";
             $processing = false;
         } else {
-            $selected_job = $job_check_result->fetch_assoc();
-            
             // Check if candidate has already applied for this job
-            $existing_app_stmt = $connection->prepare("SELECT id FROM applications WHERE candidate_id = ? AND job_position_id = ?");
-            $existing_app_stmt->bind_param("ii", $_SESSION['user_id'], $selected_job_id);
-            $existing_app_stmt->execute();
-            $existing_app_result = $existing_app_stmt->get_result();
+            $stmt = $pdo->prepare("SELECT id FROM applications WHERE candidate_id = ? AND job_position_id = ?");
+            $stmt->execute([$_SESSION['user_id'], $selected_job_id]);
+            $existing_application = $stmt->fetch();
             
-            if ($existing_app_result->num_rows > 0) {
+            if ($existing_application) {
                 $error = "You have already applied for this position: " . htmlspecialchars($selected_job['title']);
                 $processing = false;
             }
@@ -150,19 +138,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['resume'])) {
                     error_log("Resume parsing successful for user: " . $_SESSION['user_id']);
                     
                     // Calculate match percentage based on job requirements
-                    $match_percentage = calculateMatchPercentage($parsed_data, $selected_job_id, $connection);
+                    $match_percentage = calculateMatchPercentage($parsed_data, $selected_job_id, $pdo);
                     
                     // Start transaction for saving both parsed data and application
-                    $connection->begin_transaction();
+                    $pdo->beginTransaction();
                     
                     try {
                         // Save parsed data to parsed_resumes table
-                        $save_result = $extracta->saveParsedData($parsed_data, $file_name, $connection);
+                        $save_result = $extracta->saveParsedData($parsed_data, $file_name, $pdo);
                         
                         if ($save_result) {
                             
                             // Create application entry
-                            $app_stmt = $connection->prepare("
+                            $stmt = $pdo->prepare("
                                 INSERT INTO applications (
                                     candidate_id, 
                                     job_position_id, 
@@ -186,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['resume'])) {
                             $education = isset($parsed_data['education']) ? json_encode($parsed_data['education']) : null;
                             $contact = isset($parsed_data['personal_info']) ? json_encode($parsed_data['personal_info']) : null;
                             
-                            $app_stmt->bind_param("iisssssssd", 
+                            $stmt->execute([
                                 $_SESSION['user_id'],
                                 $selected_job_id,
                                 $file_name,
@@ -197,27 +185,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['resume'])) {
                                 $education,
                                 $contact,
                                 $match_percentage
-                            );
+                            ]);
                             
-                            if ($app_stmt->execute()) {
-                                $connection->commit();
-                                $success = true;
-                                $application_created = true;
-                                error_log("Application created successfully for user: " . $_SESSION['user_id']);
-                            } else {
-                                $connection->rollback();
-                                $error = "Resume parsed but failed to create application: " . $app_stmt->error;
-                                error_log("Application creation failed: " . $app_stmt->error);
-                            }
+                            $pdo->commit();
+                            $success = true;
+                            $application_created = true;
+                            error_log("Application created successfully for user: " . $_SESSION['user_id']);
                             
                         } else {
-                            $connection->rollback();
+                            $pdo->rollback();
                             $error = "Failed to save parsed resume data.";
                             error_log("Failed to save parsed resume data - rolling back transaction");
                         }
                         
                     } catch (Exception $e) {
-                        $connection->rollback();
+                        $pdo->rollback();
                         $error = "Database error: " . $e->getMessage();
                         error_log("Database exception: " . $e->getMessage());
                     }
@@ -236,19 +218,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['resume'])) {
 }
 
 // Function to calculate match percentage
-function calculateMatchPercentage($parsed_data, $job_position_id, $connection) {
+function calculateMatchPercentage($parsed_data, $job_position_id, $pdo) {
     try {
         // Get job requirements
-        $job_stmt = $connection->prepare("SELECT required_skills, experience_level FROM job_positions WHERE id = ?");
-        $job_stmt->bind_param("i", $job_position_id);
-        $job_stmt->execute();
-        $job_result = $job_stmt->get_result();
+        $stmt = $pdo->prepare("SELECT required_skills, experience_level FROM job_positions WHERE id = ?");
+        $stmt->execute([$job_position_id]);
+        $job_data = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if ($job_result->num_rows === 0) {
+        if (!$job_data) {
             return 0;
         }
         
-        $job_data = $job_result->fetch_assoc();
         $required_skills = explode(',', strtolower($job_data['required_skills']));
         $required_experience = strtolower($job_data['experience_level']);
         
@@ -1592,4 +1572,5 @@ function calculateMatchPercentage($parsed_data, $job_position_id, $connection) {
         updateSubmitButton();
     </script>
 </body>
+
 </html>
