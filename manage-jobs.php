@@ -18,7 +18,7 @@ requireRole('hr');
 $success = '';
 $error = '';
 
-// Handle job creation - FIXED FOR YOUR DATABASE SCHEMA
+// Handle job creation
 if (isset($_POST['create_job'])) {
     $title = trim($_POST['title']);
     $department = trim($_POST['department']);
@@ -28,17 +28,15 @@ if (isset($_POST['create_job'])) {
     
     if (!empty($title) && !empty($department) && !empty($description) && !empty($required_skills)) {
         try {
-            // FIXED: Only use columns that exist in your table
-            $stmt = $connection->prepare("
+            $stmt = $pdo->prepare("
                 INSERT INTO job_positions (title, department, description, required_skills, experience_level, created_by, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, NOW())
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ");
-            $stmt->bind_param("sssssi", $title, $department, $description, $required_skills, $experience_level, $_SESSION['user_id']);
             
-            if ($stmt->execute()) {
+            if ($stmt->execute([$title, $department, $description, $required_skills, $experience_level, $_SESSION['user_id']])) {
                 $success = "Job position created successfully!";
             } else {
-                $error = "Failed to create job position: " . $connection->error;
+                $error = "Failed to create job position.";
             }
         } catch (Exception $e) {
             $error = "Error: " . $e->getMessage();
@@ -48,7 +46,7 @@ if (isset($_POST['create_job'])) {
     }
 }
 
-// Handle job update - FIXED FOR YOUR DATABASE SCHEMA
+// Handle job update
 if (isset($_POST['update_job'])) {
     $job_id = (int)$_POST['job_id'];
     $title = trim($_POST['title']);
@@ -60,18 +58,16 @@ if (isset($_POST['update_job'])) {
     
     if (!empty($title) && !empty($department) && !empty($description) && !empty($required_skills)) {
         try {
-            // FIXED: Only use columns that exist in your table
-            $stmt = $connection->prepare("
+            $stmt = $pdo->prepare("
                 UPDATE job_positions 
                 SET title=?, department=?, description=?, required_skills=?, experience_level=?, status=?
                 WHERE id=?
             ");
-            $stmt->bind_param("ssssssi", $title, $department, $description, $required_skills, $experience_level, $status, $job_id);
             
-            if ($stmt->execute()) {
+            if ($stmt->execute([$title, $department, $description, $required_skills, $experience_level, $status, $job_id])) {
                 $success = "Job position updated successfully!";
             } else {
-                $error = "Failed to update job position: " . $connection->error;
+                $error = "Failed to update job position.";
             }
         } catch (Exception $e) {
             $error = "Error: " . $e->getMessage();
@@ -87,24 +83,20 @@ if (isset($_POST['delete_job'])) {
     
     try {
         // Check if job has applications first
-        $check_stmt = $connection->prepare("SELECT COUNT(*) as app_count FROM applications WHERE job_position_id = ?");
-        $check_stmt->bind_param("i", $job_id);
-        $check_stmt->execute();
-        $app_result = $check_stmt->get_result();
-        $app_count = $app_result->fetch_assoc()['app_count'];
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM applications WHERE job_position_id = ?");
+        $stmt->execute([$job_id]);
+        $app_count = $stmt->fetchColumn();
         
         if ($app_count > 0) {
             // Don't delete, just set status to closed
-            $stmt = $connection->prepare("UPDATE job_positions SET status='closed' WHERE id=?");
-            $stmt->bind_param("i", $job_id);
-            if ($stmt->execute()) {
+            $stmt = $pdo->prepare("UPDATE job_positions SET status='closed' WHERE id=?");
+            if ($stmt->execute([$job_id])) {
                 $success = "Job position closed (has $app_count applications). Set to closed status instead of deleting.";
             }
         } else {
             // Safe to delete
-            $stmt = $connection->prepare("DELETE FROM job_positions WHERE id=?");
-            $stmt->bind_param("i", $job_id);
-            if ($stmt->execute()) {
+            $stmt = $pdo->prepare("DELETE FROM job_positions WHERE id=?");
+            if ($stmt->execute([$job_id])) {
                 $success = "Job position deleted successfully!";
             }
         }
@@ -119,7 +111,7 @@ $experience_filter = isset($_GET['experience']) ? $_GET['experience'] : 'all';
 $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-// Build query for jobs - FIXED FOR YOUR DATABASE SCHEMA
+// Build query for jobs
 $query = "
     SELECT 
         jp.*,
@@ -132,54 +124,37 @@ $query = "
 ";
 
 $params = [];
-$types = '';
 
 // Apply filters
 if ($department_filter && $department_filter !== 'all') {
     $query .= " AND jp.department = ?";
     $params[] = $department_filter;
-    $types .= 's';
 }
 
 if ($experience_filter && $experience_filter !== 'all') {
     $query .= " AND jp.experience_level = ?";
     $params[] = $experience_filter;
-    $types .= 's';
 }
 
 if ($status_filter && $status_filter !== 'all') {
     $query .= " AND jp.status = ?";
     $params[] = $status_filter;
-    $types .= 's';
 }
 
 if (!empty($search)) {
-    $query .= " AND (jp.title LIKE ? OR jp.description LIKE ? OR jp.required_skills LIKE ?)";
+    $query .= " AND (jp.title ILIKE ? OR jp.description ILIKE ? OR jp.required_skills ILIKE ?)";
     $search_param = '%' . $search . '%';
     $params[] = $search_param;
     $params[] = $search_param;
     $params[] = $search_param;
-    $types .= 'sss';
 }
 
 $query .= " ORDER BY jp.created_at DESC";
 
 try {
-    if ($params) {
-        $stmt = $connection->prepare($query);
-        if ($stmt) {
-            $stmt->bind_param($types, ...$params);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $jobs = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
-        } else {
-            $jobs = [];
-            $error = "Failed to prepare statement: " . $connection->error;
-        }
-    } else {
-        $stmt = $connection->query($query);
-        $jobs = $stmt ? $stmt->fetch_all(MYSQLI_ASSOC) : [];
-    }
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch(Exception $e) {
     $error = "Database error: " . $e->getMessage();
     $jobs = [];
@@ -194,7 +169,7 @@ $departments = [
     'Management'
 ];
 
-// FIXED: Only use experience levels that exist in your enum
+// Experience levels that match your enum
 $experience_levels = [
     'entry' => 'Entry Level',
     'mid' => 'Mid Level', 
@@ -1219,4 +1194,5 @@ $experience_levels = [
         }, 5000);
     </script>
 </body>
+
 </html>
