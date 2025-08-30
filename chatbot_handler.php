@@ -69,16 +69,15 @@ try {
     error_log("Chatbot Handler - Processing message for user ID: " . $user_id);
     
     // Get user context from database
-    $stmt = $connection->prepare("
+    $stmt = $pdo->prepare("
         SELECT u.full_name, u.role, u.department, u.created_at,
                jp.title as job_title
         FROM users u 
         LEFT JOIN job_positions jp ON u.job_position_id = jp.id 
         WHERE u.id = ?
     ");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $user_data = $stmt->get_result()->fetch_assoc();
+    $stmt->execute([$user_id]);
+    $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$user_data) {
         error_log("Chatbot Handler - User data not found for ID: " . $user_id);
@@ -100,7 +99,7 @@ try {
     error_log("Chatbot Handler - User context: " . json_encode($user_context));
     
     // First, check if we have a matching FAQ
-    $faq_response = checkFAQ($connection, $user_message);
+    $faq_response = checkFAQ($pdo, $user_message);
     
     if ($faq_response) {
         error_log("Chatbot Handler - FAQ match found");
@@ -126,18 +125,13 @@ try {
     }
     
     // Log the conversation
-    $stmt = $connection->prepare("
+    $stmt = $pdo->prepare("
         INSERT INTO chat_conversations (user_id, session_id, message, response, message_type, api_response_time) 
         VALUES (?, ?, ?, ?, 'user', ?)
     ");
-    $stmt->bind_param("isssd", $user_id, $session_id, $user_message, $response, $response_time);
-    $stmt->execute();
+    $stmt->execute([$user_id, $session_id, $user_message, $response, $response_time]);
     
-    if ($stmt->error) {
-        error_log("Chatbot Handler - Database insert error: " . $stmt->error);
-    } else {
-        error_log("Chatbot Handler - Conversation logged successfully");
-    }
+    error_log("Chatbot Handler - Conversation logged successfully");
     
     echo json_encode([
         'success' => true,
@@ -165,31 +159,30 @@ try {
 }
 
 /**
- * Check for FAQ matches using keywords - FIXED VERSION
+ * Check for FAQ matches using keywords - PDO VERSION
  */
-function checkFAQ($connection, $message) {
+function checkFAQ($pdo, $message) {
     try {
         $message_lower = strtolower($message);
         
-        // Faster query with better indexing
-        $stmt = $connection->prepare("
+        // PostgreSQL-compatible query
+        $stmt = $pdo->prepare("
             SELECT answer, question 
             FROM chatbot_faq 
-            WHERE is_active = 1 
+            WHERE is_active = true 
             AND (
                 LOWER(question) LIKE ? 
-                OR FIND_IN_SET(?, LOWER(REPLACE(keywords, ' ', ','))) > 0
+                OR LOWER(keywords) LIKE ?
             )
-            ORDER BY CHAR_LENGTH(question) ASC
+            ORDER BY LENGTH(question) ASC
             LIMIT 1
         ");
         
         $search_term = "%{$message_lower}%";
-        $stmt->bind_param("ss", $search_term, $message_lower);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $stmt->execute([$search_term, $search_term]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if ($row = $result->fetch_assoc()) {
+        if ($row) {
             return $row['answer'];
         }
         return null;
