@@ -1,48 +1,59 @@
 <?php
 // Authentication functions
 require_once 'includes/db.php';
-// In your auth.php, add debugging:
-error_log("Login attempt - Username: " . $_POST['username']);
-error_log("Password provided: " . (isset($_POST['password']) ? 'YES' : 'NO'));
-
-// After the database query:
-error_log("Users found in database: " . $stmt->rowCount());
-
-
 
 // Check if user is logged in
 function isLoggedIn() {
     return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
 }
 
-// Login function
+// Login function with proper debugging
 function login($username, $password) {
     global $pdo;
+    
+    // Add debugging inside the function
+    error_log("Login attempt - Username: " . $username);
+    error_log("Password provided: " . (!empty($password) ? 'YES' : 'NO'));
     
     try {
         $stmt = $pdo->prepare("SELECT id, username, password, full_name, email, role, status, department, job_position_id FROM users WHERE username = ? AND status = 'active'");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
         
+        // Debug: Log query results
+        error_log("Users found in database: " . ($user ? '1' : '0'));
+        if ($user) {
+            error_log("Found user: " . $user['username'] . " with role: " . $user['role']);
+            error_log("Stored password: " . substr($user['password'], 0, 10) . "...");
+        }
+        
         if ($user) {
             // Check if password is hashed or plaintext
             $password_valid = false;
             
+            error_log("Testing password verification...");
+            
             // First try hashed password verification
             if (password_verify($password, $user['password'])) {
                 $password_valid = true;
+                error_log("Password verified with password_verify()");
             } 
             // Fallback to plaintext comparison for existing users
             else if ($user['password'] === $password) {
                 $password_valid = true;
+                error_log("Password verified with plaintext comparison");
                 
                 // Optional: Update to hashed password for security
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
                 $update_stmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
                 $update_stmt->execute([$hashed_password, $user['id']]);
+                error_log("Password updated to hashed version");
+            } else {
+                error_log("Password verification failed. Input: " . $password . " | Stored: " . $user['password']);
             }
             
             if ($password_valid) {
+                error_log("Login successful for user: " . $username);
                 // Set session variables
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
@@ -53,7 +64,11 @@ function login($username, $password) {
                 $_SESSION['job_position_id'] = $user['job_position_id'];
                 
                 return true;
+            } else {
+                error_log("Login failed: Invalid password for user " . $username);
             }
+        } else {
+            error_log("Login failed: User not found - " . $username);
         }
         
         return false;
@@ -388,4 +403,5 @@ function logUserActivity($action, $details = '') {
     }
 }
 ?>
+
 
