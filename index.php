@@ -26,10 +26,14 @@ $error = '';
 $success = '';
 $mode = $_GET['mode'] ?? 'login'; // login, register, forgot
 
-// Add this near the top of your file after the database connection
-$stmt = $pdo->query("SELECT NOW() as db_time");
-$db_time = $stmt->fetch()['db_time'];
-error_log("Database time: " . $db_time . ", PHP time: " . date('Y-m-d H:i:s'));
+// Database connection test (optional - remove in production)
+try {
+    $stmt = $pdo->query("SELECT CURRENT_TIMESTAMP as db_time");
+    $db_time = $stmt->fetchColumn();
+    error_log("Database time: " . $db_time . ", PHP time: " . date('Y-m-d H:i:s'));
+} catch (Exception $e) {
+    error_log("Database connection test failed: " . $e->getMessage());
+}
 
 // Handle login form submission
 if ($_POST && isset($_POST['action']) && $_POST['action'] === 'login') {
@@ -97,12 +101,12 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'register') {
                 }
             }
         } catch (PDOException $e) {
+            error_log("Registration error: " . $e->getMessage());
             $error = 'Registration failed. Please try again.';
         }
     }
 }
 
-// Handle forgot password form submission
 // Handle forgot password form submission
 if ($_POST && isset($_POST['action']) && $_POST['action'] === 'forgot') {
     $email = trim($_POST['email'] ?? '');
@@ -114,7 +118,7 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'forgot') {
             // Check if email exists
             $stmt = $pdo->prepare("SELECT id, username FROM users WHERE email = ?");
             $stmt->execute([$email]);
-            $user = $stmt->fetch();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($user) {
                 // Generate reset token
@@ -140,7 +144,7 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'forgot') {
     }
 }
 
-// Handle reset password form submission FIRST (before checking reset mode)
+// Handle reset password form submission
 if ($_POST && isset($_POST['action']) && $_POST['action'] === 'reset') {
     $token = $_POST['token'] ?? '';
     $password = $_POST['password'] ?? '';
@@ -154,10 +158,10 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'reset') {
         $error = 'Password must be at least 6 characters long.';
     } else {
         try {
-            // First get the user and check expiration with PHP instead of SQL
+            // Get the user and check expiration
             $stmt = $pdo->prepare("SELECT id, username, reset_expires FROM users WHERE reset_token = ?");
             $stmt->execute([$token]);
-            $user = $stmt->fetch();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($user && strtotime($user['reset_expires']) > time()) {
                 // Token is valid and not expired, update password
@@ -167,7 +171,6 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'reset') {
                 if ($stmt->execute([$hashed_password, $token])) {
                     $success = 'Password updated successfully! You can now log in.';
                     $mode = 'login';
-                    // Don't redirect immediately, let the success message show
                 } else {
                     $error = 'Failed to update password. Please try again.';
                 }
@@ -177,7 +180,7 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'reset') {
                 } else {
                     $error = 'Reset token has expired. Please request a new reset link.';
                 }
-                $mode = 'forgot'; // Redirect to forgot password instead of login
+                $mode = 'forgot';
             }
         } catch (PDOException $e) {
             error_log("Reset password error: " . $e->getMessage());
@@ -186,14 +189,13 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'reset') {
     }
 }
 
-// Check for reset mode and validate token (ONLY if not processing form submission)
+// Check for reset mode and validate token (only if not processing form submission)
 if ($mode === 'reset' && isset($_GET['token']) && !isset($_POST['action'])) {
     $token = $_GET['token'];
     try {
-        // Use the same approach - get user and check expiration with PHP
         $stmt = $pdo->prepare("SELECT id, username, reset_expires FROM users WHERE reset_token = ?");
         $stmt->execute([$token]);
-        $user = $stmt->fetch();
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$user) {
             $error = 'Invalid reset token. Please request a new password reset.';
@@ -1099,3 +1101,4 @@ if ($mode === 'reset' && isset($_GET['token']) && !isset($_POST['action'])) {
    </script>
 </body>
 </html>
+
