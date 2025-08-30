@@ -1,4 +1,5 @@
 <?php
+
 session_start();
 require_once 'includes/config.php';
 require_once 'includes/db.php';
@@ -11,14 +12,14 @@ if (!isLoggedIn()) {
 }
 
 // Check database connection
-if (!isset($connection) || $connection->connect_error) {
+if (!isset($pdo)) {
     die("Database connection failed. Please check your database configuration.");
 }
 
 // Fetch user's applications with job details
 $applications = [];
 try {
-    $stmt = $connection->prepare("
+    $stmt = $pdo->prepare("
         SELECT 
             a.id,
             a.status,
@@ -40,13 +41,9 @@ try {
         ORDER BY a.applied_at DESC
     ");
     
-    $stmt->bind_param("i", $_SESSION['user_id']);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $stmt->execute([$_SESSION['user_id']]);
+    $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    while ($row = $result->fetch_assoc()) {
-        $applications[] = $row;
-    }
 } catch (Exception $e) {
     error_log("Error fetching applications: " . $e->getMessage());
 }
@@ -775,4 +772,5 @@ function getNextSteps($status) {
         }, 300000); // 5 minutes
     </script>
 </body>
+
 </html>
