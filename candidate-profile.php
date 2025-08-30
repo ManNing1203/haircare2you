@@ -11,7 +11,7 @@ if (!isLoggedIn()) {
 }
 
 // Check database connection
-if (!isset($connection) || $connection->connect_error) {
+if (!isset($pdo)) {
     die("Database connection failed. Please check your database configuration.");
 }
 
@@ -24,26 +24,21 @@ $parsed_resume_data = [];
 
 try {
     // Get user basic info
-    $stmt = $connection->prepare("SELECT * FROM users WHERE id = ?");
-    if (!$stmt) {
-        throw new Exception("Prepare failed: " . $connection->error);
-    }
-    $stmt->bind_param("i", $_SESSION['user_id']);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->execute([$_SESSION['user_id']]);
+    $user_info = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if ($result->num_rows > 0) {
-        $user_info = $result->fetch_assoc();
-    } else {
+    if (!$user_info) {
         throw new Exception("User not found.");
     }
 
     // Check if applications table has parsed_resume_id column
-    $check_column = $connection->query("SHOW COLUMNS FROM applications LIKE 'parsed_resume_id'");
+    $stmt = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'applications' AND column_name = 'parsed_resume_id'");
+    $has_parsed_resume_id = $stmt->fetch() !== false;
     
-    if ($check_column->num_rows > 0) {
+    if ($has_parsed_resume_id) {
         // If parsed_resume_id exists in applications table
-        $resume_stmt = $connection->prepare("
+        $stmt = $pdo->prepare("
             SELECT pr.* 
             FROM parsed_resumes pr 
             JOIN applications a ON pr.id = a.parsed_resume_id 
@@ -51,24 +46,20 @@ try {
             ORDER BY pr.created_at DESC 
             LIMIT 1
         ");
-        $resume_stmt->bind_param("i", $_SESSION['user_id']);
+        $stmt->execute([$_SESSION['user_id']]);
     } else {
         // If no direct link exists, try to match by email
-        $resume_stmt = $connection->prepare("
+        $stmt = $pdo->prepare("
             SELECT * FROM parsed_resumes 
             WHERE email = ? 
             ORDER BY created_at DESC 
             LIMIT 1
         ");
-        $resume_stmt->bind_param("s", $user_info['email']);
+        $stmt->execute([$user_info['email']]);
     }
     
-    $resume_stmt->execute();
-    $resume_result = $resume_stmt->get_result();
+    $parsed_resume_data = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
-    if ($resume_result->num_rows > 0) {
-        $parsed_resume_data = $resume_result->fetch_assoc();
-    }
 } catch (Exception $e) {
     error_log("Error fetching profile data: " . $e->getMessage());
     $error = "Error loading profile data: " . $e->getMessage();
@@ -92,12 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             try {
                 // Update without password change
                 if (empty($new_password) && empty($confirm_password)) {
-                    $stmt = $connection->prepare("UPDATE users SET full_name = ?, email = ? WHERE id = ?");
-                    if (!$stmt) {
-                        throw new Exception("Update prepare failed: " . $connection->error);
-                    }
-                    $stmt->bind_param("ssi", $full_name, $email, $_SESSION['user_id']);
-                    if ($stmt->execute()) {
+                    $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ? WHERE id = ?");
+                    if ($stmt->execute([$full_name, $email, $_SESSION['user_id']])) {
                         $success = true;
                         $user_info['full_name'] = $full_name;
                         $user_info['email'] = $email;
@@ -107,14 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     }
                 } else {
                     // Password update flow
-                    $stmt = $connection->prepare("SELECT password FROM users WHERE id = ?");
-                    if (!$stmt) {
-                        throw new Exception("Password check prepare failed: " . $connection->error);
-                    }
-                    $stmt->bind_param("i", $_SESSION['user_id']);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
-                    $row = $result->fetch_assoc();
+                    $stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
+                    $stmt->execute([$_SESSION['user_id']]);
+                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
                     if (!password_verify($current_password, $row['password'])) {
                         $error = "Current password is incorrect.";
@@ -124,12 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $error = "New password must be at least 6 characters.";
                     } else {
                         $hashed_password = password_hash($new_password, PASSWORD_BCRYPT);
-                        $stmt = $connection->prepare("UPDATE users SET full_name = ?, email = ?, password = ? WHERE id = ?");
-                        if (!$stmt) {
-                            throw new Exception("Password update prepare failed: " . $connection->error);
-                        }
-                        $stmt->bind_param("sssi", $full_name, $email, $hashed_password, $_SESSION['user_id']);
-                        if ($stmt->execute()) {
+                        $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, password = ? WHERE id = ?");
+                        if ($stmt->execute([$full_name, $email, $hashed_password, $_SESSION['user_id']])) {
                             $success = true;
                             $user_info['full_name'] = $full_name;
                             $user_info['email'] = $email;
@@ -725,4 +703,5 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     </script>
 </body>
+
 </html>
