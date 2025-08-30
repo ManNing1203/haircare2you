@@ -5,15 +5,22 @@ require_once 'includes/db.php';
 try {
     echo "<h2>Setting up Vector Database...</h2>";
     
-    // Create users table
+    // Drop existing table if it has wrong schema
+    $pdo->exec("DROP TABLE IF EXISTS users CASCADE;");
+    echo "🗑️ Dropped existing users table<br>";
+    
+    // Create users table with correct schema
     $sql = "
-    CREATE TABLE IF NOT EXISTS users (
+    CREATE TABLE users (
         id SERIAL PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
         email VARCHAR(100) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         full_name VARCHAR(100) NOT NULL,
         role VARCHAR(20) NOT NULL DEFAULT 'candidate',
+        status VARCHAR(20) NOT NULL DEFAULT 'active',
+        department VARCHAR(100) NULL,
+        job_position_id INTEGER NULL,
         reset_token VARCHAR(64) NULL,
         reset_expires TIMESTAMP NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
