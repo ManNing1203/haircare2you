@@ -12,7 +12,7 @@ if (!isLoggedIn()) {
 }
 
 // Check database connection
-if (!isset($connection) || $connection->connect_error) {
+if (!isset($pdo)) {
     die("Database connection failed. Please check your database configuration.");
 }
 
@@ -22,66 +22,62 @@ requireRole('employee');
 $user_id = $_SESSION['user_id'];
 
 // Get employee info
-$stmt = $connection->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$employee = $stmt->get_result()->fetch_assoc();
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$employee = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Create employee_documents table if it doesn't exist (for demo purposes)
-$connection->query("
+// Create employee_documents table if it doesn't exist (PostgreSQL version)
+$pdo->exec("
     CREATE TABLE IF NOT EXISTS employee_documents (
-        id int(11) NOT NULL AUTO_INCREMENT,
-        employee_id int(11) NOT NULL,
-        document_name varchar(255) NOT NULL,
-        document_type varchar(100) DEFAULT NULL,
-        file_path varchar(500) DEFAULT NULL,
-        file_size int(11) DEFAULT NULL,
-        status enum('pending','submitted','approved','rejected') DEFAULT 'pending',
-        is_required tinyint(1) DEFAULT 0,
-        description text DEFAULT NULL,
-        uploaded_at timestamp DEFAULT CURRENT_TIMESTAMP,
-        reviewed_at timestamp NULL DEFAULT NULL,
-        reviewer_notes text DEFAULT NULL,
-        PRIMARY KEY (id),
-        KEY employee_id (employee_id),
-        UNIQUE KEY unique_employee_document (employee_id, document_type)
+        id SERIAL PRIMARY KEY,
+        employee_id INTEGER NOT NULL,
+        document_name VARCHAR(255) NOT NULL,
+        document_type VARCHAR(100) DEFAULT NULL,
+        file_path VARCHAR(500) DEFAULT NULL,
+        file_size INTEGER DEFAULT NULL,
+        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','submitted','approved','rejected')),
+        is_required BOOLEAN DEFAULT false,
+        description TEXT DEFAULT NULL,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        reviewed_at TIMESTAMP NULL DEFAULT NULL,
+        reviewer_notes TEXT DEFAULT NULL,
+        UNIQUE (employee_id, document_type)
     )
 ");
 
 // Get employee documents
 try {
     // First, check which required documents already exist for this employee
-    $stmt = $connection->prepare("SELECT document_type FROM employee_documents WHERE employee_id = ?");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $existing_docs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt = $pdo->prepare("SELECT document_type FROM employee_documents WHERE employee_id = ?");
+    $stmt->execute([$user_id]);
+    $existing_docs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $existing_types = array_column($existing_docs, 'document_type');
     
     // Define required documents
     $required_docs = [
-        ['Employment Contract', 'contract', 'Your employment contract and terms of service', 1],
-        ['Personal Information Form', 'personal_form', 'Complete personal details and emergency contacts', 1],
-        ['Bank Details Form', 'bank_form', 'Banking information for salary processing', 1],
-        ['ID Copy', 'identification', 'Copy of your identification document (IC/Passport)', 1],
-        ['Educational Certificates', 'education', 'Copies of your educational qualifications', 1],
-        ['Medical Certificate', 'medical', 'Health clearance certificate', 0],
-        ['Previous Employment Letter', 'employment_history', 'Letter from previous employer (if applicable)', 0]
+        ['Employment Contract', 'contract', 'Your employment contract and terms of service', true],
+        ['Personal Information Form', 'personal_form', 'Complete personal details and emergency contacts', true],
+        ['Bank Details Form', 'bank_form', 'Banking information for salary processing', true],
+        ['ID Copy', 'identification', 'Copy of your identification document (IC/Passport)', true],
+        ['Educational Certificates', 'education', 'Copies of your educational qualifications', true],
+        ['Medical Certificate', 'medical', 'Health clearance certificate', false],
+        ['Previous Employment Letter', 'employment_history', 'Letter from previous employer (if applicable)', false]
     ];
     
     // Only insert documents that don't already exist
     foreach ($required_docs as $doc) {
         if (!in_array($doc[1], $existing_types)) {
-            $stmt = $connection->prepare("
+            $stmt = $pdo->prepare("
                 INSERT INTO employee_documents (employee_id, document_name, document_type, description, is_required, status) 
                 VALUES (?, ?, ?, ?, ?, 'pending')
+                ON CONFLICT (employee_id, document_type) DO NOTHING
             ");
-            $stmt->bind_param("isssi", $user_id, $doc[0], $doc[1], $doc[2], $doc[3]);
-            $stmt->execute();
+            $stmt->execute([$user_id, $doc[0], $doc[1], $doc[2], $doc[3]]);
         }
     }
     
     // Get all documents for the employee
-    $stmt = $connection->prepare("
+    $stmt = $pdo->prepare("
         SELECT 
             id,
             document_name,
@@ -98,15 +94,14 @@ try {
         WHERE employee_id = ?
         ORDER BY is_required DESC, document_name
     ");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $documents = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->execute([$user_id]);
+    $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Separate required and optional documents
     $required_documents = [];
     $optional_documents = [];
     foreach ($documents as $doc) {
-        if ($doc['is_required'] == 1) {
+        if ($doc['is_required']) {
             $required_documents[] = $doc;
         } else {
             $optional_documents[] = $doc;
@@ -154,11 +149,10 @@ if ($_POST && isset($_POST['upload_document'])) {
             $error = "File size must be less than 10MB.";
         } else {
             // Verify document belongs to this employee
-            $stmt = $connection->prepare("SELECT id FROM employee_documents WHERE id = ? AND employee_id = ?");
-            $stmt->bind_param("ii", $document_id, $user_id);
-            $stmt->execute();
+            $stmt = $pdo->prepare("SELECT id FROM employee_documents WHERE id = ? AND employee_id = ?");
+            $stmt->execute([$document_id, $user_id]);
             
-            if ($stmt->get_result()->num_rows > 0) {
+            if ($stmt->fetch()) {
                 // Create upload directory if it doesn't exist
                 $upload_dir = "uploads/documents/employee_" . $user_id . "/";
                 if (!is_dir($upload_dir)) {
@@ -171,14 +165,13 @@ if ($_POST && isset($_POST['upload_document'])) {
                 
                 if (move_uploaded_file($file['tmp_name'], $file_path)) {
                     try {
-                        $stmt = $connection->prepare("
+                        $stmt = $pdo->prepare("
                             UPDATE employee_documents 
-                            SET file_path = ?, file_size = ?, status = 'submitted', uploaded_at = NOW() 
+                            SET file_path = ?, file_size = ?, status = 'submitted', uploaded_at = CURRENT_TIMESTAMP 
                             WHERE id = ? AND employee_id = ?
                         ");
-                        $stmt->bind_param("siii", $file_path, $file['size'], $document_id, $user_id);
                         
-                        if ($stmt->execute()) {
+                        if ($stmt->execute([$file_path, $file['size'], $document_id, $user_id])) {
                             $success = "Document uploaded successfully! It will be reviewed by HR.";
                             header("Location: " . $_SERVER['PHP_SELF'] . "?success=" . urlencode($success));
                             exit;
@@ -234,7 +227,6 @@ function getFileIcon($file_path) {
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1515,4 +1507,5 @@ function getFileIcon($file_path) {
         });
     </script>
 </body>
+
 </html>
