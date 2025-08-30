@@ -12,7 +12,7 @@ if (!isLoggedIn()) {
 }
 
 // Check database connection
-if (!isset($connection) || $connection->connect_error) {
+if (!isset($pdo)) {
     die("Database connection failed. Please check your database configuration.");
 }
 
@@ -22,14 +22,13 @@ requireRole('employee');
 $user_id = $_SESSION['user_id'];
 
 // Get employee info 
-$stmt = $connection->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$employee = $stmt->get_result()->fetch_assoc();
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$employee = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Check if department column exists
-$column_check = $connection->query("SHOW COLUMNS FROM users LIKE 'department'");
-$has_department_column = $column_check && $column_check->num_rows > 0;
+$stmt = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'department'");
+$has_department_column = $stmt->fetch() !== false;
 
 // Get employee's department
 if ($has_department_column) {
@@ -42,7 +41,7 @@ if ($has_department_column) {
 try {
     if ($has_department_column && $employee_department != 'ALL') {
         // Filter by department if we have department info
-        $stmt = $connection->prepare("
+        $stmt = $pdo->prepare("
             SELECT 
                 ot.id,
                 ot.task_name,
@@ -58,10 +57,10 @@ try {
             WHERE (ot.department = 'ALL' OR ot.department = ?)
             ORDER BY ot.order_sequence
         ");
-        $stmt->bind_param("is", $user_id, $employee_department);
+        $stmt->execute([$user_id, $employee_department]);
     } else {
         // Show all tasks if no department filtering available
-        $stmt = $connection->prepare("
+        $stmt = $pdo->prepare("
             SELECT 
                 ot.id,
                 ot.task_name,
@@ -76,23 +75,16 @@ try {
             LEFT JOIN employee_onboarding eo ON ot.id = eo.task_id AND eo.employee_id = ?
             ORDER BY ot.order_sequence
         ");
-        $stmt->bind_param("i", $user_id);
+        $stmt->execute([$user_id]);
     }
     
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result === false) {
-        throw new Exception("Failed to fetch tasks: " . $connection->error);
-    }
-    
-    $all_tasks = $result->fetch_all(MYSQLI_ASSOC);
+    $all_tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Separate mandatory and optional tasks
     $mandatory_tasks = [];
     $optional_tasks = [];
     foreach ($all_tasks as $task) {
-        if ($task['is_mandatory'] == 1) {
+        if ($task['is_mandatory']) {
             $mandatory_tasks[] = $task;
         } else {
             $optional_tasks[] = $task;
@@ -128,14 +120,13 @@ if ($_POST) {
         $task_id = $_POST['task_id'];
         
         try {
-            $stmt = $connection->prepare("
+            $stmt = $pdo->prepare("
                 INSERT INTO employee_onboarding (employee_id, task_id, status) 
                 VALUES (?, ?, 'in_progress') 
-                ON DUPLICATE KEY UPDATE status = 'in_progress'
+                ON CONFLICT (employee_id, task_id) DO UPDATE SET status = 'in_progress'
             ");
-            $stmt->bind_param("ii", $user_id, $task_id);
             
-            if ($stmt->execute()) {
+            if ($stmt->execute([$user_id, $task_id])) {
                 $success = "Task started successfully!";
                 header("Location: " . $_SERVER['PHP_SELF']);
                 exit;
@@ -150,14 +141,14 @@ if ($_POST) {
         $notes = $_POST['notes'] ?? '';
         
         try {
-            $stmt = $connection->prepare("
+            $stmt = $pdo->prepare("
                 INSERT INTO employee_onboarding (employee_id, task_id, status, completed_at, notes) 
-                VALUES (?, ?, 'completed', NOW(), ?) 
-                ON DUPLICATE KEY UPDATE status = 'completed', completed_at = NOW(), notes = ?
+                VALUES (?, ?, 'completed', CURRENT_TIMESTAMP, ?) 
+                ON CONFLICT (employee_id, task_id) DO UPDATE SET 
+                status = 'completed', completed_at = CURRENT_TIMESTAMP, notes = ?
             ");
-            $stmt->bind_param("iiss", $user_id, $task_id, $notes, $notes);
             
-            if ($stmt->execute()) {
+            if ($stmt->execute([$user_id, $task_id, $notes, $notes])) {
                 $success = "Task completed successfully!";
                 header("Location: " . $_SERVER['PHP_SELF']);
                 exit;
@@ -1194,4 +1185,5 @@ if ($_POST) {
         });
     </script>
 </body>
+
 </html>
