@@ -1,15 +1,7 @@
 <?php
 require_once 'db.php';
-// require_once 'config.php';
 
-// Initialize PDO connection for functions that need it
-try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-} catch(PDOException $e) {
-    die("PDO Connection failed: " . $e->getMessage());
-}
+// PDO connection is already initialized in db.php as $pdo
 
 // Enhanced file upload function for resumes
 function uploadResume($file, $candidate_id, $job_position_id) {
@@ -73,35 +65,21 @@ function uploadResume($file, $candidate_id, $job_position_id) {
 
 /**
  * Parse resume using Extracta.ai API
- * @param string $file_path - Path to the uploaded resume file
- * @param int $candidate_id - ID of the candidate
- * @param int $job_position_id - ID of the job position
- * @return array - Parsed resume data or error
  */
 function parseResumeWithExtracta($file_path, $candidate_id, $job_position_id) {
-    // Use constants from config.php
     $api_key = EXTRACTA_API_KEY;
     $extraction_id = EXTRACTA_EXTRACTION_ID;
     $api_url = 'https://api.extracta.ai/api/v1/' . $extraction_id . '/extract';
 
     try {
-        // Check if file exists
         if (!file_exists($file_path)) {
             throw new Exception('Resume file not found: ' . $file_path);
         }
         
-        // Prepare the file for upload
         $file_data = new CURLFile($file_path, mime_content_type($file_path), basename($file_path));
+        $post_data = ['file' => $file_data];
         
-        // Prepare the POST data
-        $post_data = [
-            'file' => $file_data
-        ];
-        
-        // Initialize cURL
         $curl = curl_init();
-        
-        // Set cURL options using constants from config
         curl_setopt_array($curl, [
             CURLOPT_URL => $api_url,
             CURLOPT_RETURNTRANSFER => true,
@@ -117,42 +95,31 @@ function parseResumeWithExtracta($file_path, $candidate_id, $job_position_id) {
             CURLOPT_FOLLOWLOCATION => true
         ]);
         
-        // Execute the request
         $response = curl_exec($curl);
         $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         $curl_error = curl_error($curl);
-        
         curl_close($curl);
         
-        // Check for cURL errors
         if ($curl_error) {
             throw new Exception('cURL Error: ' . $curl_error);
         }
         
-        // Check HTTP status code
         if ($http_code !== 200) {
             throw new Exception('API Error: HTTP ' . $http_code . ' - ' . $response);
         }
         
-        // Parse the JSON response
         $api_response = json_decode($response, true);
-        
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new Exception('Invalid JSON response: ' . json_last_error_msg());
         }
         
-        // Update application status in database
         updateApplicationApiStatus($candidate_id, $job_position_id, 'completed', $response, null);
-        
-        // Process and return the parsed data
         return processExtractaResponse($api_response);
         
     } catch (Exception $e) {
-        // Log the error and update database
         error_log('Extracta API Error: ' . $e->getMessage());
         updateApplicationApiStatus($candidate_id, $job_position_id, 'failed', null, $e->getMessage());
         
-        // Return fallback data
         return [
             'success' => false,
             'error' => $e->getMessage(),
@@ -166,12 +133,9 @@ function parseResumeWithExtracta($file_path, $candidate_id, $job_position_id) {
 }
 
 /**
- * Process Extracta.ai API response and format for database storage
- * @param array $api_response - Raw API response from Extracta
- * @return array - Formatted data for database
+ * Process Extracta.ai API response
  */
 function processExtractaResponse($api_response) {
-    // Initialize default values
     $processed_data = [
         'success' => true,
         'skills' => '',
@@ -182,7 +146,7 @@ function processExtractaResponse($api_response) {
     ];
     
     try {
-        // Extract skills - try multiple possible paths in the response
+        // Extract skills
         if (isset($api_response['skills']) && is_array($api_response['skills'])) {
             $skills = array_map('trim', $api_response['skills']);
             $processed_data['skills'] = implode(', ', $skills);
@@ -284,27 +248,19 @@ function processExtractaResponse($api_response) {
 }
 
 /**
- * Update application API processing status in database
- * @param int $candidate_id
- * @param int $job_position_id  
- * @param string $status
- * @param string|null $api_response
- * @param string|null $error_message
+ * Update application API processing status
  */
 function updateApplicationApiStatus($candidate_id, $job_position_id, $status, $api_response = null, $error_message = null) {
     global $pdo;
     
     try {
-        $sql = "UPDATE applications SET 
+        $stmt = $pdo->prepare("UPDATE applications SET 
                 api_processing_status = ?, 
                 api_response = ?, 
                 api_error_message = ?, 
                 updated_at = CURRENT_TIMESTAMP 
-                WHERE candidate_id = ? AND job_position_id = ?";
-        
-        $stmt = $pdo->prepare($sql);
+                WHERE candidate_id = ? AND job_position_id = ?");
         $stmt->execute([$status, $api_response, $error_message, $candidate_id, $job_position_id]);
-        
     } catch (Exception $e) {
         error_log('Error updating application API status: ' . $e->getMessage());
     }
@@ -312,15 +268,11 @@ function updateApplicationApiStatus($candidate_id, $job_position_id, $status, $a
 
 // Updated parseResume function to use Extracta.ai API
 function parseResume($file_path, $candidate_id = null, $job_position_id = null) {
-    // Use Extracta.ai API if candidate and job IDs are provided
     if ($candidate_id && $job_position_id) {
         return parseResumeWithExtracta($file_path, $candidate_id, $job_position_id);
     }
     
-    // Fallback to mock data if API fails or IDs not provided
-    $mock_skills = [
-        'PHP', 'JavaScript', 'MySQL', 'HTML', 'CSS', 'Laravel', 'React', 'Node.js'
-    ];
+    $mock_skills = ['PHP', 'JavaScript', 'MySQL', 'HTML', 'CSS', 'Laravel', 'React', 'Node.js'];
     
     return [
         'success' => true,
@@ -349,12 +301,11 @@ function calculateMatchPercentage($resume_skills, $job_skills) {
 
 // Get job positions
 function getJobPositions() {
-    global $connection;
+    global $pdo;
     
     try {
-        $sql = "SELECT id, title, department, status FROM job_positions WHERE status = 'active' ORDER BY title";
-        $result = $connection->query($sql);
-        return $result->fetch_all(MYSQLI_ASSOC);
+        $stmt = $pdo->query("SELECT id, title, department, status FROM job_positions WHERE status = 'active' ORDER BY title");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         error_log("Error fetching job positions: " . $e->getMessage());
         return [];
@@ -363,7 +314,7 @@ function getJobPositions() {
 
 // Get all applications for HR dashboard
 function getApplicationsForHR($job_id = null) {
-    global $connection;
+    global $pdo;
     
     try {
         $sql = "
@@ -385,20 +336,14 @@ function getApplicationsForHR($job_id = null) {
         
         if ($job_id) {
             $sql .= " WHERE a.job_position_id = ?";
-        }
-        
-        $sql .= " ORDER BY a.applied_at DESC";
-        
-        if ($job_id) {
-            $stmt = $connection->prepare($sql);
-            $stmt->bind_param("i", $job_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
+            $stmt = $pdo->prepare($sql . " ORDER BY a.applied_at DESC");
+            $stmt->execute([$job_id]);
         } else {
-            $result = $connection->query($sql);
+            $sql .= " ORDER BY a.applied_at DESC";
+            $stmt = $pdo->query($sql);
         }
         
-        return $result->fetch_all(MYSQLI_ASSOC);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         error_log("Error fetching applications: " . $e->getMessage());
         return [];
@@ -407,12 +352,11 @@ function getApplicationsForHR($job_id = null) {
 
 // Update application status
 function updateApplicationStatus($application_id, $status, $notes = '') {
-    global $connection;
+    global $pdo;
     
     try {
-        $stmt = $connection->prepare("UPDATE applications SET status = ?, hr_notes = ?, updated_at = NOW() WHERE id = ?");
-        $stmt->bind_param("ssi", $status, $notes, $application_id);
-        return $stmt->execute();
+        $stmt = $pdo->prepare("UPDATE applications SET status = ?, hr_notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        return $stmt->execute([$status, $notes, $application_id]);
     } catch (Exception $e) {
         error_log("Error updating application status: " . $e->getMessage());
         return false;
@@ -421,23 +365,17 @@ function updateApplicationStatus($application_id, $status, $notes = '') {
 
 // Get user by username
 function getUserByUsername($username) {
-    global $connection;
+    global $pdo;
     
     try {
-        $stmt = $connection->prepare("SELECT * FROM users WHERE username = ?");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        return $result->fetch_assoc();
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         error_log("Error fetching user: " . $e->getMessage());
         return null;
     }
 }
-
-// REMOVED: createUser function - now using the one from auth.php
-// The createUser function is defined in auth.php with better parameters:
-// createUser($username, $email, $password, $full_name, $role = 'candidate', $department = null, $job_position_id = null)
 
 // Sanitize input
 function sanitizeInput($input) {
@@ -451,57 +389,48 @@ function formatDate($date, $format = 'M j, Y') {
 
 // Get application statistics
 function getApplicationStats() {
-    global $connection;
+    global $pdo;
     
     try {
         $stats = [];
         
         // Total applications
-        $result = $connection->query("SELECT COUNT(*) as total FROM applications");
-        $stats['total'] = $result->fetch_assoc()['total'];
+        $stmt = $pdo->query("SELECT COUNT(*) FROM applications");
+        $stats['total'] = $stmt->fetchColumn();
         
         // Pending applications
-        $result = $connection->query("SELECT COUNT(*) as pending FROM applications WHERE status = 'pending'");
-        $stats['pending'] = $result->fetch_assoc()['pending'];
+        $stmt = $pdo->query("SELECT COUNT(*) FROM applications WHERE status = 'pending'");
+        $stats['pending'] = $stmt->fetchColumn();
         
         // Hired candidates
-        $result = $connection->query("SELECT COUNT(*) as hired FROM applications WHERE status = 'hired'");
-        $stats['hired'] = $result->fetch_assoc()['hired'];
+        $stmt = $pdo->query("SELECT COUNT(*) FROM applications WHERE status = 'hired'");
+        $stats['hired'] = $stmt->fetchColumn();
         
         // Active employees
-        $result = $connection->query("SELECT COUNT(*) as employees FROM users WHERE role = 'employee' AND status = 'active'");
-        $stats['employees'] = $result->fetch_assoc()['employees'];
+        $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'employee' AND status = 'active'");
+        $stats['employees'] = $stmt->fetchColumn();
         
         return $stats;
     } catch (Exception $e) {
         error_log("Error fetching stats: " . $e->getMessage());
-        return [
-            'total' => 0,
-            'pending' => 0,
-            'hired' => 0,
-            'employees' => 0
-        ];
+        return ['total' => 0, 'pending' => 0, 'hired' => 0, 'employees' => 0];
     }
 }
 
 // Check if username exists
 function usernameExists($username, $exclude_id = null) {
-    global $connection;
+    global $pdo;
     
     try {
-        $sql = "SELECT id FROM users WHERE username = ?";
         if ($exclude_id) {
-            $sql .= " AND id != ?";
-            $stmt = $connection->prepare($sql);
-            $stmt->bind_param("si", $username, $exclude_id);
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? AND id != ?");
+            $stmt->execute([$username, $exclude_id]);
         } else {
-            $stmt = $connection->prepare($sql);
-            $stmt->bind_param("s", $username);
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+            $stmt->execute([$username]);
         }
         
-        $stmt->execute();
-        $result = $stmt->get_result();
-        return $result->num_rows > 0;
+        return $stmt->fetch() !== false;
     } catch (Exception $e) {
         error_log("Error checking username: " . $e->getMessage());
         return false;
@@ -510,22 +439,18 @@ function usernameExists($username, $exclude_id = null) {
 
 // Check if email exists
 function emailExists($email, $exclude_id = null) {
-    global $connection;
+    global $pdo;
     
     try {
-        $sql = "SELECT id FROM users WHERE email = ?";
         if ($exclude_id) {
-            $sql .= " AND id != ?";
-            $stmt = $connection->prepare($sql);
-            $stmt->bind_param("si", $email, $exclude_id);
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
+            $stmt->execute([$email, $exclude_id]);
         } else {
-            $stmt = $connection->prepare($sql);
-            $stmt->bind_param("s", $email);
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt->execute([$email]);
         }
         
-        $stmt->execute();
-        $result = $stmt->get_result();
-        return $result->num_rows > 0;
+        return $stmt->fetch() !== false;
     } catch (Exception $e) {
         error_log("Error checking email: " . $e->getMessage());
         return false;
@@ -544,7 +469,7 @@ function createEmployeeFromApplication($application_id) {
                               JOIN job_positions j ON a.job_position_id = j.id 
                               WHERE a.id = ?");
         $stmt->execute([$application_id]);
-        $app = $stmt->fetch();
+        $app = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($app) {
             // Update user role to employee
@@ -560,7 +485,7 @@ function createEmployeeFromApplication($application_id) {
             return true;
         }
         return false;
-    } catch(PDOException $e) {
+    } catch(Exception $e) {
         error_log('Error creating employee from application: ' . $e->getMessage());
         return false;
     }
@@ -572,22 +497,22 @@ function assignOnboardingTasks($employee_id, $department) {
     
     try {
         // Check if onboarding_tasks table exists
-        $stmt = $pdo->query("SHOW TABLES LIKE 'onboarding_tasks'");
-        if ($stmt->rowCount() == 0) {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'onboarding_tasks'");
+        if ($stmt->fetchColumn() == 0) {
             return true; // Table doesn't exist, skip
         }
         
         $stmt = $pdo->prepare("SELECT id FROM onboarding_tasks WHERE department = 'ALL' OR department = ? ORDER BY order_sequence");
         $stmt->execute([$department]);
-        $tasks = $stmt->fetchAll();
+        $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         foreach ($tasks as $task) {
-            $stmt = $pdo->prepare("INSERT IGNORE INTO employee_onboarding (employee_id, task_id) VALUES (?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO employee_onboarding (employee_id, task_id) VALUES (?, ?) ON CONFLICT DO NOTHING");
             $stmt->execute([$employee_id, $task['id']]);
         }
         
         return true;
-    } catch(PDOException $e) {
+    } catch(Exception $e) {
         error_log('Error assigning onboarding tasks: ' . $e->getMessage());
         return false;
     }
@@ -599,22 +524,22 @@ function assignTrainingModules($employee_id, $department) {
     
     try {
         // Check if training_modules table exists
-        $stmt = $pdo->query("SHOW TABLES LIKE 'training_modules'");
-        if ($stmt->rowCount() == 0) {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'training_modules'");
+        if ($stmt->fetchColumn() == 0) {
             return true; // Table doesn't exist, skip
         }
         
         $stmt = $pdo->prepare("SELECT id FROM training_modules WHERE department = 'ALL' OR department = ?");
         $stmt->execute([$department]);
-        $modules = $stmt->fetchAll();
+        $modules = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         foreach ($modules as $module) {
-            $stmt = $pdo->prepare("INSERT IGNORE INTO employee_training (employee_id, module_id) VALUES (?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO employee_training (employee_id, module_id) VALUES (?, ?) ON CONFLICT DO NOTHING");
             $stmt->execute([$employee_id, $module['id']]);
         }
         
         return true;
-    } catch(PDOException $e) {
+    } catch(Exception $e) {
         error_log('Error assigning training modules: ' . $e->getMessage());
         return false;
     }
@@ -633,8 +558,8 @@ function getOnboardingProgress($employee_id) {
             ORDER BY t.order_sequence
         ");
         $stmt->execute([$employee_id]);
-        return $stmt->fetchAll();
-    } catch(PDOException $e) {
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch(Exception $e) {
         error_log('Error getting onboarding progress: ' . $e->getMessage());
         return [];
     }
@@ -652,8 +577,8 @@ function getTrainingModules($employee_id) {
             WHERE et.employee_id = ?
         ");
         $stmt->execute([$employee_id]);
-        return $stmt->fetchAll();
-    } catch(PDOException $e) {
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch(Exception $e) {
         error_log('Error getting training modules: ' . $e->getMessage());
         return [];
     }
@@ -664,10 +589,13 @@ function updateTaskStatus($employee_id, $task_id, $status) {
     global $pdo;
     
     try {
-        $completed_at = ($status === 'completed') ? 'NOW()' : 'NULL';
-        $stmt = $pdo->prepare("UPDATE employee_onboarding SET status = ?, completed_at = $completed_at WHERE employee_id = ? AND task_id = ?");
+        if ($status === 'completed') {
+            $stmt = $pdo->prepare("UPDATE employee_onboarding SET status = ?, completed_at = CURRENT_TIMESTAMP WHERE employee_id = ? AND task_id = ?");
+        } else {
+            $stmt = $pdo->prepare("UPDATE employee_onboarding SET status = ?, completed_at = NULL WHERE employee_id = ? AND task_id = ?");
+        }
         return $stmt->execute([$status, $employee_id, $task_id]);
-    } catch(PDOException $e) {
+    } catch(Exception $e) {
         error_log('Error updating task status: ' . $e->getMessage());
         return false;
     }
@@ -680,9 +608,9 @@ function getChatbotResponse($user_message) {
     $user_message_lower = strtolower($user_message);
     
     try {
-        $stmt = $pdo->prepare("SELECT answer FROM chatbot_faq WHERE LOWER(keywords) LIKE ? AND is_active = 1 LIMIT 1");
+        $stmt = $pdo->prepare("SELECT answer FROM chatbot_faq WHERE LOWER(keywords) LIKE ? AND is_active = true LIMIT 1");
         $stmt->execute(['%' . $user_message_lower . '%']);
-        $response = $stmt->fetch();
+        $response = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($response) {
             return $response['answer'];
@@ -690,10 +618,10 @@ function getChatbotResponse($user_message) {
             // Default response
             $stmt = $pdo->prepare("SELECT setting_value FROM chatbot_settings WHERE setting_key = 'default_response'");
             $stmt->execute();
-            $default = $stmt->fetch();
+            $default = $stmt->fetch(PDO::FETCH_ASSOC);
             return $default ? $default['setting_value'] : "I'm sorry, I couldn't understand your question. Please contact HR for assistance.";
         }
-    } catch(PDOException $e) {
+    } catch(Exception $e) {
         error_log('Chatbot error: ' . $e->getMessage());
         return "I'm experiencing technical difficulties. Please contact HR for assistance.";
     }
@@ -711,9 +639,45 @@ function saveChatMessage($user_id, $session_id, $message, $response) {
         $stmt->execute([$user_id, $session_id, $response, $message]);
         
         return true;
-    } catch(PDOException $e) {
+    } catch(Exception $e) {
         error_log('Error saving chat message: ' . $e->getMessage());
         return false;
+    }
+}
+
+// Function for role transitions - used in dashboards
+function handleRoleRedirect($pdo, $current_page) {
+    // Check if user's role has changed (e.g., from candidate to employee)
+    if (isset($_SESSION['user_id'])) {
+        $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($user && $user['role'] !== $_SESSION['role']) {
+            $_SESSION['role'] = $user['role'];
+            
+            // Redirect based on new role if not already on correct page
+            switch ($user['role']) {
+                case 'hr':
+                    if ($current_page !== 'hr-dashboard.php') {
+                        header('Location: hr-dashboard.php?transitioned=true');
+                        exit;
+                    }
+                    break;
+                case 'employee':
+                    if ($current_page !== 'employee-dashboard.php') {
+                        header('Location: employee-dashboard.php?transitioned=true');
+                        exit;
+                    }
+                    break;
+                case 'candidate':
+                    if ($current_page !== 'candidate-dashboard.php') {
+                        header('Location: candidate-dashboard.php?transitioned=true');
+                        exit;
+                    }
+                    break;
+            }
+        }
     }
 }
 ?>
