@@ -1,11 +1,11 @@
 <?php
 // Simple chat log viewer (HR only)
 require_once 'includes/config.php';
+require_once 'includes/db.php';
 require_once 'includes/auth.php';
-
 requireRole('hr');
 
-$stmt = $connection->prepare("
+$stmt = $pdo->prepare("
     SELECT cc.*, u.full_name, u.department 
     FROM chat_conversations cc
     JOIN users u ON cc.user_id = u.id
@@ -13,7 +13,7 @@ $stmt = $connection->prepare("
     LIMIT 100
 ");
 $stmt->execute();
-$conversations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$conversations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!-- Display conversations in a table -->
@@ -36,4 +36,5 @@ $conversations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         <td><?php echo $conv['api_response_time'] ? round($conv['api_response_time'], 3) . 's' : 'N/A'; ?></td>
     </tr>
     <?php endforeach; ?>
+
 </table>
