@@ -1,7 +1,4 @@
 <?php
-// require_once 'includes/auth.php';
-// require_once 'includes/functions.php';
-
 session_start();
 require_once 'includes/config.php';
 require_once 'includes/db.php';
@@ -15,61 +12,17 @@ if (!isLoggedIn()) {
     exit;
 }
 
-$query = "
-    SELECT 
-        a.id,
-        u.full_name as candidate_name,
-        u.email as candidate_email,
-        a.match_percentage,
-        a.applied_at,
-        a.status,
-        a.hr_notes,
-        a.resume_filename,    -- Make sure this is included
-        a.resume_path,        -- Make sure this is included  
-        j.title as job_title,
-        j.department
-    FROM applications a
-    JOIN job_positions j ON a.job_position_id = j.id
-    JOIN users u ON a.candidate_id = u.id
-    WHERE 1=1
-";
-
 // Check database connection
-if (!isset($connection) || $connection->connect_error) {
+if (!isset($pdo)) {
     die("Database connection failed. Please check your database configuration.");
 }
 
 // Ensure HR access only
 requireRole('hr');
 
-// Get dashboard statistics
-try {
-    // Total applications
-    $stmt = $connection->query("SELECT COUNT(*) as total FROM applications");
-    $total_applications = $stmt->fetch_assoc()['total'];
-    
-    // Pending applications
-    $stmt = $connection->query("SELECT COUNT(*) as pending FROM applications WHERE status = 'pending'");
-    $pending_applications = $stmt->fetch_assoc()['pending'];
-    
-    // Hired candidates
-    $stmt = $connection->query("SELECT COUNT(*) as hired FROM applications WHERE status = 'hired'");
-    $hired_candidates = $stmt->fetch_assoc()['hired'];
-    
-    // Active employees
-    $stmt = $connection->query("SELECT COUNT(*) as employees FROM users WHERE role = 'employee' AND status = 'active'");
-    $active_employees = $stmt->fetch_assoc()['employees'];
-    
-    // Get all applications with details
-    $filter_job_id = isset($_GET['job_id']) ? (int)$_GET['job_id'] : null;
-    $applications = getApplicationsForHR($filter_job_id);
-    
-    // Get job positions for filtering
-    $job_positions = getJobPositions();
-    
-} catch(Exception $e) {
-    $error = "Database error: " . $e->getMessage();
-}
+// Initialize variables
+$error = '';
+$success = '';
 
 // Handle status updates
 if ($_POST && isset($_POST['update_status'])) {
@@ -79,14 +32,157 @@ if ($_POST && isset($_POST['update_status'])) {
     
     if (updateApplicationStatus($application_id, $new_status, $notes)) {
         $success = "Application status updated successfully!";
-        // Refresh applications data
-        $applications = getApplicationsForHR($filter_job_id);
     } else {
         $error = "Failed to update application status.";
     }
 }
 
+// Get dashboard statistics
+try {
+    // Total applications
+    $stmt = $pdo->query("SELECT COUNT(*) FROM applications");
+    $total_applications = $stmt->fetchColumn();
+    
+    // Pending applications
+    $stmt = $pdo->query("SELECT COUNT(*) FROM applications WHERE status = 'pending'");
+    $pending_applications = $stmt->fetchColumn();
+    
+    // Hired candidates
+    $stmt = $pdo->query("SELECT COUNT(*) FROM applications WHERE status = 'hired'");
+    $hired_candidates = $stmt->fetchColumn();
+    
+    // Active employees
+    $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'employee' AND status = 'active'");
+    $active_employees = $stmt->fetchColumn();
+    
+    // Get filter parameters
+    $filter_job_id = isset($_GET['job_id']) ? (int)$_GET['job_id'] : null;
+    $filter_status = isset($_GET['status']) ? $_GET['status'] : null;
+    
+    // Build applications query with filters
+    $query = "
+        SELECT 
+            a.id,
+            u.full_name as candidate_name,
+            u.email as candidate_email,
+            a.match_percentage,
+            a.applied_at,
+            a.status,
+            a.hr_notes,
+            a.resume_filename,
+            a.resume_path,
+            j.title as job_title,
+            j.department
+        FROM applications a
+        JOIN job_positions j ON a.job_position_id = j.id
+        JOIN users u ON a.candidate_id = u.id
+        WHERE 1=1
+    ";
+    
+    $params = [];
+    
+    if ($filter_job_id) {
+        $query .= " AND a.job_position_id = ?";
+        $params[] = $filter_job_id;
+    }
+    
+    if ($filter_status) {
+        $query .= " AND a.status = ?";
+        $params[] = $filter_status;
+    }
+    
+    $query .= " ORDER BY a.applied_at DESC";
+    
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Get job positions for filtering
+    $stmt = $pdo->query("SELECT id, title, department FROM job_positions WHERE status = 'active' ORDER BY title");
+    $job_positions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Get recent activity for dashboard
+    $stmt = $pdo->query("
+        SELECT 
+            a.id,
+            u.full_name as candidate_name,
+            j.title as job_title,
+            a.status,
+            a.applied_at,
+            a.updated_at
+        FROM applications a
+        JOIN users u ON a.candidate_id = u.id
+        JOIN job_positions j ON a.job_position_id = j.id
+        ORDER BY a.updated_at DESC
+        LIMIT 10
+    ");
+    $recent_activity = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Get applications by status for charts
+    $stmt = $pdo->query("
+        SELECT 
+            status,
+            COUNT(*) as count
+        FROM applications
+        GROUP BY status
+    ");
+    $status_stats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Get applications by department
+    $stmt = $pdo->query("
+        SELECT 
+            j.department,
+            COUNT(*) as count
+        FROM applications a
+        JOIN job_positions j ON a.job_position_id = j.id
+        GROUP BY j.department
+    ");
+    $department_stats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Get monthly application trends (last 6 months)
+    $stmt = $pdo->query("
+        SELECT 
+            DATE_TRUNC('month', applied_at) as month,
+            COUNT(*) as count
+        FROM applications
+        WHERE applied_at >= CURRENT_DATE - INTERVAL '6 months'
+        GROUP BY DATE_TRUNC('month', applied_at)
+        ORDER BY month
+    ");
+    $monthly_trends = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+} catch(Exception $e) {
+    $error = "Database error: " . $e->getMessage();
+    $total_applications = $pending_applications = $hired_candidates = $active_employees = 0;
+    $applications = $job_positions = $recent_activity = [];
+    $status_stats = $department_stats = $monthly_trends = [];
+}
+
+// Helper function to get status badge class
+function getStatusBadgeClass($status) {
+    switch($status) {
+        case 'pending': return 'bg-yellow-100 text-yellow-800';
+        case 'reviewing': return 'bg-blue-100 text-blue-800';
+        case 'interviewed': return 'bg-purple-100 text-purple-800';
+        case 'hired': return 'bg-green-100 text-green-800';
+        case 'rejected': return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+}
+
+// Helper function to format dates
+function formatDate($date) {
+    return date('M j, Y g:i A', strtotime($date));
+}
+
+// Helper function to get match percentage color
+function getMatchPercentageClass($percentage) {
+    if ($percentage >= 80) return 'text-green-600';
+    if ($percentage >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1601,4 +1697,5 @@ function manageJobs() {
         });
     </script>
 </body>
+
 </html>
