@@ -1,6 +1,14 @@
 <?php
 // Authentication functions
 require_once 'includes/db.php';
+// In your auth.php, add debugging:
+error_log("Login attempt - Username: " . $_POST['username']);
+error_log("Password provided: " . (isset($_POST['password']) ? 'YES' : 'NO'));
+
+// After the database query:
+error_log("Users found in database: " . $stmt->rowCount());
+
+
 
 // Check if user is logged in
 function isLoggedIn() {
@@ -380,3 +388,4 @@ function logUserActivity($action, $details = '') {
     }
 }
 ?>
+
