@@ -170,11 +170,6 @@ function getStatusBadgeClass($status) {
     }
 }
 
-// Helper function to format dates
-function formatDate($date) {
-    return date('M j, Y g:i A', strtotime($date));
-}
-
 // Helper function to get match percentage color
 function getMatchPercentageClass($percentage) {
     if ($percentage >= 80) return 'text-green-600';
@@ -1699,3 +1694,4 @@ function manageJobs() {
 </body>
 
 </html>
+
