@@ -12,7 +12,7 @@ if (!isLoggedIn()) {
 }
 
 // Check database connection
-if (!isset($connection) || $connection->connect_error) {
+if (!isset($pdo)) {
     die("Database connection failed. Please check your database configuration.");
 }
 
@@ -22,19 +22,18 @@ requireRole('employee');
 $user_id = $_SESSION['user_id'];
 
 // Get employee info
-$stmt = $connection->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$employee = $stmt->get_result()->fetch_assoc();
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$employee = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Define categories to hide from employee view
 $hidden_categories = ['general', 'greeting', 'company'];
 
-// Create the WHERE clause to exclude hidden categories
-$category_placeholders = str_repeat('?,', count($hidden_categories) - 1) . '?';
-
 try {
-    $stmt = $connection->prepare("
+    // Create placeholders for the IN clause
+    $placeholders = str_repeat('?,', count($hidden_categories) - 1) . '?';
+    
+    $stmt = $pdo->prepare("
         SELECT 
             id,
             question,
@@ -42,15 +41,13 @@ try {
             category,
             keywords
         FROM chatbot_faq 
-        WHERE is_active = 1 
-        AND category NOT IN ($category_placeholders)
+        WHERE is_active = true 
+        AND category NOT IN ($placeholders)
         ORDER BY category, question
     ");
     
-    // Bind the hidden categories as parameters
-    $stmt->bind_param(str_repeat('s', count($hidden_categories)), ...$hidden_categories);
-    $stmt->execute();
-    $faqs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->execute($hidden_categories);
+    $faqs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Group FAQs by category
     $faq_categories = [];
@@ -68,21 +65,19 @@ try {
     $faq_categories = [];
 }
 
-// Create support_tickets table if it doesn't exist (for demo purposes)
-$connection->query("
+// Create support_tickets table if it doesn't exist (PostgreSQL version)
+$pdo->exec("
     CREATE TABLE IF NOT EXISTS support_tickets (
-        id int(11) NOT NULL AUTO_INCREMENT,
-        employee_id int(11) NOT NULL,
-        subject varchar(255) NOT NULL,
-        category varchar(100) DEFAULT 'general',
-        priority enum('low','medium','high','urgent') DEFAULT 'medium',
-        status enum('open','in_progress','resolved','closed') DEFAULT 'open',
-        description text NOT NULL,
-        created_at timestamp DEFAULT CURRENT_TIMESTAMP,
-        updated_at timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        resolved_at timestamp NULL DEFAULT NULL,
-        PRIMARY KEY (id),
-        KEY employee_id (employee_id)
+        id SERIAL PRIMARY KEY,
+        employee_id INTEGER NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        category VARCHAR(100) DEFAULT 'general',
+        priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN ('low','medium','high','urgent')),
+        status VARCHAR(20) DEFAULT 'open' CHECK (status IN ('open','in_progress','resolved','closed')),
+        description TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        resolved_at TIMESTAMP NULL
     )
 ");
 
@@ -94,13 +89,12 @@ if ($_POST && isset($_POST['submit_ticket'])) {
     $description = $_POST['description'];
     
     try {
-        $stmt = $connection->prepare("
+        $stmt = $pdo->prepare("
             INSERT INTO support_tickets (employee_id, subject, category, priority, description) 
             VALUES (?, ?, ?, ?, ?)
         ");
-        $stmt->bind_param("issss", $user_id, $subject, $category, $priority, $description);
         
-        if ($stmt->execute()) {
+        if ($stmt->execute([$user_id, $subject, $category, $priority, $description])) {
             $success = "Support ticket submitted successfully! You will receive a response within 24 hours.";
             header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
             exit;
@@ -112,7 +106,7 @@ if ($_POST && isset($_POST['submit_ticket'])) {
 
 // Get employee's support tickets
 try {
-    $stmt = $connection->query("
+    $stmt = $pdo->prepare("
         SELECT 
             id,
             subject,
@@ -124,11 +118,12 @@ try {
             updated_at,
             resolved_at
         FROM support_tickets 
-        WHERE employee_id = $user_id 
+        WHERE employee_id = ? 
         ORDER BY created_at DESC 
         LIMIT 5
     ");
-    $tickets = $stmt->fetch_all(MYSQLI_ASSOC);
+    $stmt->execute([$user_id]);
+    $tickets = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch(Exception $e) {
     $tickets = [];
 }
@@ -1245,4 +1240,5 @@ $category_names = [
         }
     </script>
 </body>
+
 </html>
