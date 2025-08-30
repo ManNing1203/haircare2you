@@ -402,6 +402,3 @@ function logUserActivity($action, $details = '') {
         return false;
     }
 }
-?>
-
-
