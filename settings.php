@@ -30,9 +30,8 @@ if ($_POST) {
                     $department = $_POST['department'];
                     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
                     
-                    $stmt = $connection->prepare("INSERT INTO users (username, email, password, full_name, role, department) VALUES (?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("ssssss", $username, $email, $password, $full_name, $role, $department);
-                    $stmt->execute();
+                    $stmt = $pdo->prepare("INSERT INTO users (username, email, password, full_name, role, department) VALUES (?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$username, $email, $password, $full_name, $role, $department]);
                     $success = "User added successfully!";
                     break;
                     
@@ -45,9 +44,8 @@ if ($_POST) {
                     $department = $_POST['department'];
                     $status = $_POST['status'];
                     
-                    $stmt = $connection->prepare("UPDATE users SET username=?, email=?, full_name=?, role=?, department=?, status=? WHERE id=?");
-                    $stmt->bind_param("ssssssi", $username, $email, $full_name, $role, $department, $status, $user_id);
-                    $stmt->execute();
+                    $stmt = $pdo->prepare("UPDATE users SET username=?, email=?, full_name=?, role=?, department=?, status=? WHERE id=?");
+                    $stmt->execute([$username, $email, $full_name, $role, $department, $status, $user_id]);
                     $success = "User updated successfully!";
                     break;
                     
@@ -59,9 +57,8 @@ if ($_POST) {
                     $experience_level = $_POST['experience_level'];
                     $created_by = $_SESSION['user_id'];
                     
-                    $stmt = $connection->prepare("INSERT INTO job_positions (title, department, description, required_skills, experience_level, created_by) VALUES (?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("sssssi", $title, $department, $description, $required_skills, $experience_level, $created_by);
-                    $stmt->execute();
+                    $stmt = $pdo->prepare("INSERT INTO job_positions (title, department, description, required_skills, experience_level, created_by) VALUES (?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$title, $department, $description, $required_skills, $experience_level, $created_by]);
                     $success = "Job position added successfully!";
                     break;
                     
@@ -74,9 +71,8 @@ if ($_POST) {
                     $experience_level = $_POST['experience_level'];
                     $status = $_POST['status'];
                     
-                    $stmt = $connection->prepare("UPDATE job_positions SET title=?, department=?, description=?, required_skills=?, experience_level=?, status=? WHERE id=?");
-                    $stmt->bind_param("ssssssi", $title, $department, $description, $required_skills, $experience_level, $status, $job_id);
-                    $stmt->execute();
+                    $stmt = $pdo->prepare("UPDATE job_positions SET title=?, department=?, description=?, required_skills=?, experience_level=?, status=? WHERE id=?");
+                    $stmt->execute([$title, $department, $description, $required_skills, $experience_level, $status, $job_id]);
                     $success = "Job position updated successfully!";
                     break;
                     
@@ -86,11 +82,10 @@ if ($_POST) {
                     $content_url = $_POST['content_url'];
                     $department = $_POST['department'];
                     $duration_hours = $_POST['duration_hours'];
-                    $is_mandatory = isset($_POST['is_mandatory']) ? 1 : 0;
+                    $is_mandatory = isset($_POST['is_mandatory']) ? true : false;
                     
-                    $stmt = $connection->prepare("INSERT INTO training_modules (module_name, description, content_url, department, duration_hours, is_mandatory) VALUES (?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("ssssii", $module_name, $description, $content_url, $department, $duration_hours, $is_mandatory);
-                    $stmt->execute();
+                    $stmt = $pdo->prepare("INSERT INTO training_modules (module_name, description, content_url, department, duration_hours, is_mandatory) VALUES (?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$module_name, $description, $content_url, $department, $duration_hours, $is_mandatory]);
                     $success = "Training module added successfully!";
                     break;
                     
@@ -101,11 +96,10 @@ if ($_POST) {
                     $content_url = $_POST['content_url'];
                     $department = $_POST['department'];
                     $duration_hours = $_POST['duration_hours'];
-                    $is_mandatory = isset($_POST['is_mandatory']) ? 1 : 0;
+                    $is_mandatory = isset($_POST['is_mandatory']) ? true : false;
                     
-                    $stmt = $connection->prepare("UPDATE training_modules SET module_name=?, description=?, content_url=?, department=?, duration_hours=?, is_mandatory=? WHERE id=?");
-                    $stmt->bind_param("ssssiii", $module_name, $description, $content_url, $department, $duration_hours, $is_mandatory, $module_id);
-                    $stmt->execute();
+                    $stmt = $pdo->prepare("UPDATE training_modules SET module_name=?, description=?, content_url=?, department=?, duration_hours=?, is_mandatory=? WHERE id=?");
+                    $stmt->execute([$module_name, $description, $content_url, $department, $duration_hours, $is_mandatory, $module_id]);
                     $success = "Training module updated successfully!";
                     break;
                     
@@ -113,12 +107,11 @@ if ($_POST) {
                     $task_name = $_POST['task_name'];
                     $description = $_POST['description'];
                     $department = $_POST['department'];
-                    $is_mandatory = isset($_POST['is_mandatory']) ? 1 : 0;
+                    $is_mandatory = isset($_POST['is_mandatory']) ? true : false;
                     $order_sequence = $_POST['order_sequence'];
                     
-                    $stmt = $connection->prepare("INSERT INTO onboarding_tasks (task_name, description, department, is_mandatory, order_sequence) VALUES (?, ?, ?, ?, ?)");
-                    $stmt->bind_param("sssii", $task_name, $description, $department, $is_mandatory, $order_sequence);
-                    $stmt->execute();
+                    $stmt = $pdo->prepare("INSERT INTO onboarding_tasks (task_name, description, department, is_mandatory, order_sequence) VALUES (?, ?, ?, ?, ?)");
+                    $stmt->execute([$task_name, $description, $department, $is_mandatory, $order_sequence]);
                     $success = "Onboarding task added successfully!";
                     break;
                     
@@ -127,17 +120,16 @@ if ($_POST) {
                     $task_name = $_POST['task_name'];
                     $description = $_POST['description'];
                     $department = $_POST['department'];
-                    $is_mandatory = isset($_POST['is_mandatory']) ? 1 : 0;
+                    $is_mandatory = isset($_POST['is_mandatory']) ? true : false;
                     $order_sequence = $_POST['order_sequence'];
                     
-                    $stmt = $connection->prepare("UPDATE onboarding_tasks SET task_name=?, description=?, department=?, is_mandatory=?, order_sequence=? WHERE id=?");
-                    $stmt->bind_param("sssiii", $task_name, $description, $department, $is_mandatory, $order_sequence, $task_id);
-                    $stmt->execute();
+                    $stmt = $pdo->prepare("UPDATE onboarding_tasks SET task_name=?, description=?, department=?, is_mandatory=?, order_sequence=? WHERE id=?");
+                    $stmt->execute([$task_name, $description, $department, $is_mandatory, $order_sequence, $task_id]);
                     $success = "Onboarding task updated successfully!";
                     break;
                     
                 case 'update_chatbot_settings':
-                    $chatbot_enabled = isset($_POST['chatbot_enabled']) ? 1 : 0;
+                    $chatbot_enabled = isset($_POST['chatbot_enabled']) ? true : false;
                     $api_provider = $_POST['api_provider'];
                     $api_key = $_POST['api_key'];
                     $default_response = $_POST['default_response'];
@@ -153,9 +145,13 @@ if ($_POST) {
                     ];
                     
                     foreach ($settings as $key => $value) {
-                        $stmt = $connection->prepare("UPDATE chatbot_settings SET setting_value = ? WHERE setting_key = ?");
-                        $stmt->bind_param("ss", $value, $key);
-                        $stmt->execute();
+                        $stmt = $pdo->prepare("
+                            INSERT INTO chatbot_settings (setting_key, setting_value) 
+                            VALUES (?, ?) 
+                            ON CONFLICT (setting_key) 
+                            DO UPDATE SET setting_value = EXCLUDED.setting_value
+                        ");
+                        $stmt->execute([$key, $value]);
                     }
                     
                     $success = "Chatbot settings updated successfully!";
@@ -167,25 +163,22 @@ if ($_POST) {
                     $category = $_POST['category'];
                     $keywords = $_POST['keywords'];
                     
-                    $stmt = $connection->prepare("INSERT INTO chatbot_faq (question, answer, category, keywords) VALUES (?, ?, ?, ?)");
-                    $stmt->bind_param("ssss", $question, $answer, $category, $keywords);
-                    $stmt->execute();
+                    $stmt = $pdo->prepare("INSERT INTO chatbot_faq (question, answer, category, keywords) VALUES (?, ?, ?, ?)");
+                    $stmt->execute([$question, $answer, $category, $keywords]);
                     $success = "FAQ added successfully!";
                     break;
                     
                 case 'delete_user':
                     $user_id = $_POST['user_id'];
-                    $stmt = $connection->prepare("UPDATE users SET status = 'inactive' WHERE id = ? AND id != ?");
-                    $stmt->bind_param("ii", $user_id, $_SESSION['user_id']); // Prevent self-deletion
-                    $stmt->execute();
+                    $stmt = $pdo->prepare("UPDATE users SET status = 'inactive' WHERE id = ? AND id != ?");
+                    $stmt->execute([$user_id, $_SESSION['user_id']]); // Prevent self-deletion
                     $success = "User deactivated successfully!";
                     break;
                     
                 case 'delete_job_position':
                     $job_id = $_POST['job_id'];
-                    $stmt = $connection->prepare("UPDATE job_positions SET status = 'closed' WHERE id = ?");
-                    $stmt->bind_param("i", $job_id);
-                    $stmt->execute();
+                    $stmt = $pdo->prepare("UPDATE job_positions SET status = 'closed' WHERE id = ?");
+                    $stmt->execute([$job_id]);
                     $success = "Job position closed successfully!";
                     break;
             }
@@ -198,31 +191,31 @@ if ($_POST) {
 // Fetch data for display
 try {
     // Get all users
-    $users_stmt = $connection->query("SELECT * FROM users ORDER BY created_at DESC");
-    $users = $users_stmt->fetch_all(MYSQLI_ASSOC);
+    $stmt = $pdo->query("SELECT * FROM users ORDER BY created_at DESC");
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get all job positions
-    $jobs_stmt = $connection->query("SELECT * FROM job_positions ORDER BY created_at DESC");
-    $job_positions = $jobs_stmt->fetch_all(MYSQLI_ASSOC);
+    $stmt = $pdo->query("SELECT * FROM job_positions ORDER BY created_at DESC");
+    $job_positions = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get all training modules
-    $training_stmt = $connection->query("SELECT * FROM training_modules ORDER BY created_at DESC");
-    $training_modules = $training_stmt->fetch_all(MYSQLI_ASSOC);
+    $stmt = $pdo->query("SELECT * FROM training_modules ORDER BY created_at DESC");
+    $training_modules = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get all onboarding tasks
-    $tasks_stmt = $connection->query("SELECT * FROM onboarding_tasks ORDER BY order_sequence");
-    $onboarding_tasks = $tasks_stmt->fetch_all(MYSQLI_ASSOC);
+    $stmt = $pdo->query("SELECT * FROM onboarding_tasks ORDER BY order_sequence");
+    $onboarding_tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get chatbot settings
-    $settings_stmt = $connection->query("SELECT setting_key, setting_value FROM chatbot_settings");
+    $stmt = $pdo->query("SELECT setting_key, setting_value FROM chatbot_settings");
     $chatbot_settings = [];
-    while ($row = $settings_stmt->fetch_assoc()) {
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $chatbot_settings[$row['setting_key']] = $row['setting_value'];
     }
     
     // Get FAQ items
-    $faq_stmt = $connection->query("SELECT * FROM chatbot_faq ORDER BY created_at DESC LIMIT 10");
-    $faq_items = $faq_stmt->fetch_all(MYSQLI_ASSOC);
+    $stmt = $pdo->query("SELECT * FROM chatbot_faq ORDER BY created_at DESC LIMIT 10");
+    $faq_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
 } catch (Exception $e) {
     $error = "Failed to load data: " . $e->getMessage();
@@ -230,6 +223,7 @@ try {
 
 $departments = ['ALL', 'IT', 'Sales & Marketing', 'Customer Service', 'Operations', 'Management'];
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1824,4 +1818,5 @@ $departments = ['ALL', 'IT', 'Sales & Marketing', 'Customer Service', 'Operation
         }, 5000);
     </script>
 </body>
+
 </html>
