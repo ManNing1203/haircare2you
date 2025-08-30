@@ -27,96 +27,89 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $notes = $_POST['notes'] ?? '';
             
             // Start transaction
-            $connection->begin_transaction();
+            $pdo->beginTransaction();
             
             // Update application status
-            $stmt = $connection->prepare("UPDATE applications SET status = ?, hr_notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-            $stmt->bind_param("ssi", $new_status, $notes, $application_id);
+            $stmt = $pdo->prepare("UPDATE applications SET status = ?, hr_notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
             
-            if ($stmt->execute()) {
+            if ($stmt->execute([$new_status, $notes, $application_id])) {
                 // If status is 'hired', convert candidate to employee
                 if ($new_status === 'hired') {
                     // Get application details
-                    $app_stmt = $connection->prepare("SELECT candidate_id, job_position_id FROM applications WHERE id = ?");
-                    $app_stmt->bind_param("i", $application_id);
-                    $app_stmt->execute();
-                    $app_result = $app_stmt->get_result();
-                    $app_data = $app_result->fetch_assoc();
+                    $stmt = $pdo->prepare("SELECT candidate_id, job_position_id FROM applications WHERE id = ?");
+                    $stmt->execute([$application_id]);
+                    $app_data = $stmt->fetch(PDO::FETCH_ASSOC);
                     
                     if ($app_data) {
                         // Get job details
-                        $job_stmt = $connection->prepare("SELECT department, title FROM job_positions WHERE id = ?");
-                        $job_stmt->bind_param("i", $app_data['job_position_id']);
-                        $job_stmt->execute();
-                        $job_result = $job_stmt->get_result();
-                        $job_data = $job_result->fetch_assoc();
+                        $stmt = $pdo->prepare("SELECT department, title FROM job_positions WHERE id = ?");
+                        $stmt->execute([$app_data['job_position_id']]);
+                        $job_data = $stmt->fetch(PDO::FETCH_ASSOC);
                         
                         if ($job_data) {
                             // Update user role and department
-                            $user_stmt = $connection->prepare("UPDATE users SET role = 'employee', department = ?, job_position_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-                            $user_stmt->bind_param("sii", $job_data['department'], $app_data['job_position_id'], $app_data['candidate_id']);
+                            $stmt = $pdo->prepare("UPDATE users SET role = 'employee', department = ?, job_position_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
                             
-                            if ($user_stmt->execute()) {
+                            if ($stmt->execute([$job_data['department'], $app_data['job_position_id'], $app_data['candidate_id']])) {
                                 // Create onboarding tasks
-                                $task_stmt = $connection->prepare("
-                                    INSERT IGNORE INTO employee_onboarding (employee_id, task_id, status)
+                                $stmt = $pdo->prepare("
+                                    INSERT INTO employee_onboarding (employee_id, task_id, status)
                                     SELECT ?, ot.id, 'pending'
                                     FROM onboarding_tasks ot
                                     WHERE ot.department = ? OR ot.department = 'ALL'
+                                    ON CONFLICT DO NOTHING
                                 ");
-                                $task_stmt->bind_param("is", $app_data['candidate_id'], $job_data['department']);
-                                $task_stmt->execute();
+                                $stmt->execute([$app_data['candidate_id'], $job_data['department']]);
                                 
                                 // Create training assignments
-                                $training_stmt = $connection->prepare("
-                                    INSERT IGNORE INTO employee_training (employee_id, module_id, status, progress_percentage)
+                                $stmt = $pdo->prepare("
+                                    INSERT INTO employee_training (employee_id, module_id, status, progress_percentage)
                                     SELECT ?, tm.id, 'not_started', 0
                                     FROM training_modules tm
                                     WHERE tm.department = ? OR tm.department = 'ALL'
+                                    ON CONFLICT DO NOTHING
                                 ");
-                                $training_stmt->bind_param("is", $app_data['candidate_id'], $job_data['department']);
-                                $training_stmt->execute();
+                                $stmt->execute([$app_data['candidate_id'], $job_data['department']]);
                                 
                                 // Create employee documents
-                                $doc_stmt = $connection->prepare("
-                                    INSERT IGNORE INTO employee_documents (employee_id, document_name, document_type, status, is_required, description)
-                                    VALUES 
-                                    (?, 'Employment Contract', 'contract', 'pending', 1, 'Your employment contract and terms of service'),
-                                    (?, 'Personal Information Form', 'personal_form', 'pending', 1, 'Complete personal details and emergency contacts'),
-                                    (?, 'Bank Details Form', 'bank_form', 'pending', 1, 'Banking information for salary processing'),
-                                    (?, 'ID Copy', 'identification', 'pending', 1, 'Copy of your identification document (IC/Passport)'),
-                                    (?, 'Educational Certificates', 'education', 'pending', 1, 'Copies of your educational qualifications')
-                                ");
-                                $doc_stmt->bind_param("iiiii", 
-                                    $app_data['candidate_id'], 
-                                    $app_data['candidate_id'], 
-                                    $app_data['candidate_id'], 
-                                    $app_data['candidate_id'], 
-                                    $app_data['candidate_id']
-                                );
-                                $doc_stmt->execute();
+                                $docs = [
+                                    ['Employment Contract', 'contract', 'Your employment contract and terms of service'],
+                                    ['Personal Information Form', 'personal_form', 'Complete personal details and emergency contacts'],
+                                    ['Bank Details Form', 'bank_form', 'Banking information for salary processing'],
+                                    ['ID Copy', 'identification', 'Copy of your identification document (IC/Passport)'],
+                                    ['Educational Certificates', 'education', 'Copies of your educational qualifications']
+                                ];
                                 
-                                $connection->commit();
+                                foreach ($docs as $doc) {
+                                    $stmt = $pdo->prepare("
+                                        INSERT INTO employee_documents (employee_id, document_name, document_type, status, is_required, description)
+                                        VALUES (?, ?, ?, 'pending', true, ?)
+                                        ON CONFLICT DO NOTHING
+                                    ");
+                                    $stmt->execute([$app_data['candidate_id'], $doc[0], $doc[1], $doc[2]]);
+                                }
+                                
+                                $pdo->commit();
                                 $success = "Application status updated successfully! Candidate has been converted to employee and onboarding materials have been created.";
                             } else {
-                                $connection->rollback();
-                                $error = "Failed to update user role: " . $connection->error;
+                                $pdo->rollback();
+                                $error = "Failed to update user role.";
                             }
                         } else {
-                            $connection->rollback();
+                            $pdo->rollback();
                             $error = "Job position not found.";
                         }
                     } else {
-                        $connection->rollback();
+                        $pdo->rollback();
                         $error = "Application not found.";
                     }
                 } else {
-                    $connection->commit();
+                    $pdo->commit();
                     $success = "Application status updated successfully!";
                 }
             } else {
-                $connection->rollback();
-                $error = "Failed to update application status: " . $connection->error;
+                $pdo->rollback();
+                $error = "Failed to update application status.";
             }
         }
         
@@ -128,58 +121,48 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $hired_count = 0;
             
             if (!empty($selected_applications) && !empty($bulk_action)) {
-                $connection->begin_transaction();
+                $pdo->beginTransaction();
                 
                 foreach ($selected_applications as $app_id) {
                     $app_id = (int)$app_id;
                     
                     switch ($bulk_action) {
                         case 'approve_selected':
-                            $stmt = $connection->prepare("UPDATE applications SET status = 'selected', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-                            $stmt->bind_param("i", $app_id);
-                            if ($stmt->execute()) $processed++;
+                            $stmt = $pdo->prepare("UPDATE applications SET status = 'selected', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+                            if ($stmt->execute([$app_id])) $processed++;
                             break;
                             
                         case 'reject_selected':
-                            $stmt = $connection->prepare("UPDATE applications SET status = 'rejected', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-                            $stmt->bind_param("i", $app_id);
-                            if ($stmt->execute()) $processed++;
+                            $stmt = $pdo->prepare("UPDATE applications SET status = 'rejected', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+                            if ($stmt->execute([$app_id])) $processed++;
                             break;
                             
                         case 'interview_selected':
-                            $stmt = $connection->prepare("UPDATE applications SET status = 'waiting_interview', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-                            $stmt->bind_param("i", $app_id);
-                            if ($stmt->execute()) $processed++;
+                            $stmt = $pdo->prepare("UPDATE applications SET status = 'waiting_interview', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+                            if ($stmt->execute([$app_id])) $processed++;
                             break;
                             
                         case 'hire_selected':
                             // Update status to hired
-                            $stmt = $connection->prepare("UPDATE applications SET status = 'hired', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-                            $stmt->bind_param("i", $app_id);
-                            if ($stmt->execute()) {
-                                // Convert to employee (same logic as above)
-                                $app_stmt = $connection->prepare("SELECT candidate_id, job_position_id FROM applications WHERE id = ?");
-                                $app_stmt->bind_param("i", $app_id);
-                                $app_stmt->execute();
-                                $app_result = $app_stmt->get_result();
-                                $app_data = $app_result->fetch_assoc();
+                            $stmt = $pdo->prepare("UPDATE applications SET status = 'hired', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+                            if ($stmt->execute([$app_id])) {
+                                // Convert to employee (simplified for bulk)
+                                $stmt = $pdo->prepare("SELECT candidate_id, job_position_id FROM applications WHERE id = ?");
+                                $stmt->execute([$app_id]);
+                                $app_data = $stmt->fetch(PDO::FETCH_ASSOC);
                                 
                                 if ($app_data) {
-                                    $job_stmt = $connection->prepare("SELECT department, title FROM job_positions WHERE id = ?");
-                                    $job_stmt->bind_param("i", $app_data['job_position_id']);
-                                    $job_stmt->execute();
-                                    $job_result = $job_stmt->get_result();
-                                    $job_data = $job_result->fetch_assoc();
+                                    $stmt = $pdo->prepare("SELECT department, title FROM job_positions WHERE id = ?");
+                                    $stmt->execute([$app_data['job_position_id']]);
+                                    $job_data = $stmt->fetch(PDO::FETCH_ASSOC);
                                     
                                     if ($job_data) {
-                                        $user_stmt = $connection->prepare("UPDATE users SET role = 'employee', department = ?, job_position_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-                                        $user_stmt->bind_param("sii", $job_data['department'], $app_data['job_position_id'], $app_data['candidate_id']);
+                                        $stmt = $pdo->prepare("UPDATE users SET role = 'employee', department = ?, job_position_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
                                         
-                                        if ($user_stmt->execute()) {
+                                        if ($stmt->execute([$job_data['department'], $app_data['job_position_id'], $app_data['candidate_id']])) {
                                             // Create onboarding materials (simplified for bulk)
-                                            $task_stmt = $connection->prepare("INSERT IGNORE INTO employee_onboarding (employee_id, task_id, status) SELECT ?, ot.id, 'pending' FROM onboarding_tasks ot WHERE ot.department = ? OR ot.department = 'ALL'");
-                                            $task_stmt->bind_param("is", $app_data['candidate_id'], $job_data['department']);
-                                            $task_stmt->execute();
+                                            $stmt = $pdo->prepare("INSERT INTO employee_onboarding (employee_id, task_id, status) SELECT ?, ot.id, 'pending' FROM onboarding_tasks ot WHERE ot.department = ? OR ot.department = 'ALL' ON CONFLICT DO NOTHING");
+                                            $stmt->execute([$app_data['candidate_id'], $job_data['department']]);
                                             
                                             $hired_count++;
                                             $processed++;
@@ -192,13 +175,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
                 
                 if ($processed > 0) {
-                    $connection->commit();
+                    $pdo->commit();
                     $success = "Successfully processed $processed applications.";
                     if ($hired_count > 0) {
                         $success .= " $hired_count candidates have been converted to employees.";
                     }
                 } else {
-                    $connection->rollback();
+                    $pdo->rollback();
                     $error = "No applications were processed.";
                 }
             } else {
@@ -207,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         
     } catch (Exception $e) {
-        if ($connection) $connection->rollback();
+        if ($pdo->inTransaction()) $pdo->rollback();
         $error = "Database error: " . $e->getMessage();
     }
 }
@@ -219,96 +202,74 @@ $match_filter = isset($_GET['match_filter']) ? $_GET['match_filter'] : 'all';
 
 try {
     // Get job positions for filtering
-    $stmt = $connection->query("SELECT id, title, department FROM job_positions ORDER BY title");
-    $job_positions = $stmt->fetch_all(MYSQLI_ASSOC);
+    $stmt = $pdo->query("SELECT id, title, department FROM job_positions ORDER BY title");
+    $job_positions = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Build query for applications with ranking
-$query = "
-    SELECT 
-        a.id,
-        u.full_name as candidate_name,
-        u.email as candidate_email,
-        u.role as `current_role`,
-        u.department as current_department,
-        a.extracted_contact,
-        a.match_percentage,
-        a.extracted_skills,
-        a.extracted_experience,
-        a.extracted_education,
-        a.api_response as parsed_data,
-        a.resume_filename,
-        a.applied_at,
-        a.status,
-        a.hr_notes,
-        j.title as job_title,
-        j.department,
-        j.required_skills,
-        j.experience_level,
-        j.description as job_description,
-        ROW_NUMBER() OVER (ORDER BY a.match_percentage DESC, a.applied_at DESC) as ranking
-    FROM applications a
-    JOIN job_positions j ON a.job_position_id = j.id
-    JOIN users u ON a.candidate_id = u.id
-    WHERE 1=1
-";
+    $query = "
+        SELECT 
+            a.id,
+            u.full_name as candidate_name,
+            u.email as candidate_email,
+            u.role as current_role,
+            u.department as current_department,
+            a.extracted_contact,
+            a.match_percentage,
+            a.extracted_skills,
+            a.extracted_experience,
+            a.extracted_education,
+            a.api_response as parsed_data,
+            a.resume_filename,
+            a.applied_at,
+            a.status,
+            a.hr_notes,
+            j.title as job_title,
+            j.department,
+            j.required_skills,
+            j.experience_level,
+            j.description as job_description,
+            ROW_NUMBER() OVER (ORDER BY a.match_percentage DESC, a.applied_at DESC) as ranking
+        FROM applications a
+        JOIN job_positions j ON a.job_position_id = j.id
+        JOIN users u ON a.candidate_id = u.id
+        WHERE 1=1
+    ";
 
     $params = [];
-$types = '';
 
-if ($filter_job_id) {
-    $query .= " AND a.job_position_id = ?";
-    $params[] = $filter_job_id;
-    $types .= 'i';
-}
-
-// Apply status filter
-if ($status_filter && $status_filter !== 'all') {
-    $query .= " AND a.status = ?";
-    $params[] = $status_filter;
-    $types .= 's';
-}
-
-// Apply match percentage filter
-switch($match_filter) {
-    case '90-100':
-        $query .= " AND a.match_percentage >= 90";
-        break;
-    case '70-89':
-        $query .= " AND a.match_percentage >= 70 AND a.match_percentage < 90";
-        break;
-    case '50-69':
-        $query .= " AND a.match_percentage >= 50 AND a.match_percentage < 70";
-        break;
-    case 'below-50':
-        $query .= " AND a.match_percentage < 50";
-        break;
-}
-
-$query .= " ORDER BY a.match_percentage DESC, a.applied_at DESC";
-    if ($params) {
-        $stmt = $connection->prepare($query);
-        if ($stmt) {
-            $stmt->bind_param($types, ...$params);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            if ($result) {
-                $applications = $result->fetch_all(MYSQLI_ASSOC);
-            } else {
-                $applications = [];
-            }
-        } else {
-            $applications = [];
-            $error = "Failed to prepare statement: " . $connection->error;
-        }
-    } else {
-        $stmt = $connection->query($query);
-        if ($stmt) {
-            $applications = $stmt->fetch_all(MYSQLI_ASSOC);
-        } else {
-            $applications = [];
-            $error = "Query failed: " . $connection->error;
-        }
+    if ($filter_job_id) {
+        $query .= " AND a.job_position_id = ?";
+        $params[] = $filter_job_id;
     }
+
+    // Apply status filter
+    if ($status_filter && $status_filter !== 'all') {
+        $query .= " AND a.status = ?";
+        $params[] = $status_filter;
+    }
+
+    // Apply match percentage filter
+    switch($match_filter) {
+        case '90-100':
+            $query .= " AND a.match_percentage >= 90";
+            break;
+        case '70-89':
+            $query .= " AND a.match_percentage >= 70 AND a.match_percentage < 90";
+            break;
+        case '50-69':
+            $query .= " AND a.match_percentage >= 50 AND a.match_percentage < 70";
+            break;
+        case 'below-50':
+            $query .= " AND a.match_percentage < 50";
+            break;
+    }
+
+    $query .= " ORDER BY a.match_percentage DESC, a.applied_at DESC";
+
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
 } catch(Exception $e) {
     $error = "Database error: " . $e->getMessage();
     $applications = [];
@@ -1861,4 +1822,5 @@ function formatExtractedData($data, $limit = 5) {
         </div>
     </div>
 </body>
+
 </html>
