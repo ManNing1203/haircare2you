@@ -17,7 +17,7 @@ if ($_SESSION['role'] !== 'employee') {
 }
 
 // Check database connection
-if (!isset($connection) || $connection->connect_error) {
+if (!isset($pdo)) {
     die("Database connection failed. Please check your database configuration.");
 }
 
@@ -28,33 +28,19 @@ $job_position = [];
 
 try {
     // Get user basic info
-    $stmt = $connection->prepare("SELECT * FROM users WHERE id = ?");
-    if (!$stmt) {
-        throw new Exception("Prepare failed: " . $connection->error);
-    }
-    $stmt->bind_param("i", $_SESSION['user_id']);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->execute([$_SESSION['user_id']]);
+    $user_info = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if ($result->num_rows > 0) {
-        $user_info = $result->fetch_assoc();
-    } else {
+    if (!$user_info) {
         throw new Exception("User not found.");
     }
 
     // Fetch job position details
-    $stmt = $connection->prepare("SELECT jp.title, jp.department FROM job_positions jp WHERE jp.id = ?");
-    if (!$stmt) {
-        throw new Exception("Prepare failed: " . $connection->error);
-    }
-    $stmt->bind_param("i", $user_info['job_position_id']);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        $job_position = $result->fetch_assoc();
-    } else {
-        throw new Exception("Job position not found.");
+    if ($user_info['job_position_id']) {
+        $stmt = $pdo->prepare("SELECT jp.title, jp.department FROM job_positions jp WHERE jp.id = ?");
+        $stmt->execute([$user_info['job_position_id']]);
+        $job_position = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
     }
 
 } catch (Exception $e) {
@@ -80,12 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             try {
                 // Update without password change
                 if (empty($new_password) && empty($confirm_password)) {
-                    $stmt = $connection->prepare("UPDATE users SET full_name = ?, email = ? WHERE id = ?");
-                    if (!$stmt) {
-                        throw new Exception("Update prepare failed: " . $connection->error);
-                    }
-                    $stmt->bind_param("ssi", $full_name, $email, $_SESSION['user_id']);
-                    if ($stmt->execute()) {
+                    $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ? WHERE id = ?");
+                    if ($stmt->execute([$full_name, $email, $_SESSION['user_id']])) {
                         $success = true;
                         $user_info['full_name'] = $full_name;
                         $user_info['email'] = $email;
@@ -95,14 +77,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     }
                 } else {
                     // Password update flow
-                    $stmt = $connection->prepare("SELECT password FROM users WHERE id = ?");
-                    if (!$stmt) {
-                        throw new Exception("Password check prepare failed: " . $connection->error);
-                    }
-                    $stmt->bind_param("i", $_SESSION['user_id']);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
-                    $row = $result->fetch_assoc();
+                    $stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
+                    $stmt->execute([$_SESSION['user_id']]);
+                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
                     if (!password_verify($current_password, $row['password'])) {
                         $error = "Current password is incorrect.";
@@ -112,12 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $error = "New password must be at least 6 characters.";
                     } else {
                         $hashed_password = password_hash($new_password, PASSWORD_BCRYPT);
-                        $stmt = $connection->prepare("UPDATE users SET full_name = ?, email = ?, password = ? WHERE id = ?");
-                        if (!$stmt) {
-                            throw new Exception("Password update prepare failed: " . $connection->error);
-                        }
-                        $stmt->bind_param("sssi", $full_name, $email, $hashed_password, $_SESSION['user_id']);
-                        if ($stmt->execute()) {
+                        $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, password = ? WHERE id = ?");
+                        if ($stmt->execute([$full_name, $email, $hashed_password, $_SESSION['user_id']])) {
                             $success = true;
                             $user_info['full_name'] = $full_name;
                             $user_info['email'] = $email;
@@ -672,3 +645,4 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </script>
 </body>
 </html>
+
