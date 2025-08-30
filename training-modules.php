@@ -12,7 +12,7 @@ if (!isLoggedIn()) {
 }
 
 // Check database connection
-if (!isset($connection) || $connection->connect_error) {
+if (!isset($pdo)) {
     die("Database connection failed. Please check your database configuration.");
 }
 
@@ -22,19 +22,17 @@ requireRole('employee');
 $user_id = $_SESSION['user_id'];
 
 // Get employee info
-$stmt = $connection->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$employee = $stmt->get_result()->fetch_assoc();
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$employee = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Get employee's department from their job position
 $employee_department = 'ALL';
 if ($employee['job_position_id']) {
-    $stmt = $connection->prepare("SELECT department FROM job_positions WHERE id = ?");
-    $stmt->bind_param("i", $employee['job_position_id']);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($dept_row = $result->fetch_assoc()) {
+    $stmt = $pdo->prepare("SELECT department FROM job_positions WHERE id = ?");
+    $stmt->execute([$employee['job_position_id']]);
+    $dept_row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($dept_row) {
         $employee_department = $dept_row['department'];
     }
 }
@@ -46,25 +44,23 @@ if ($_POST) {
         
         try {
             // Check if module exists and user has access
-            $stmt = $connection->prepare("
+            $stmt = $pdo->prepare("
                 SELECT id FROM training_modules 
                 WHERE id = ? AND (department = 'ALL' OR department = ?)
             ");
-            $stmt->bind_param("is", $module_id, $employee_department);
-            $stmt->execute();
+            $stmt->execute([$module_id, $employee_department]);
             
-            if ($stmt->get_result()->num_rows > 0) {
-                $stmt = $connection->prepare("
+            if ($stmt->fetch()) {
+                $stmt = $pdo->prepare("
                     INSERT INTO employee_training (employee_id, module_id, status, progress_percentage, started_at) 
-                    VALUES (?, ?, 'in_progress', 0, NOW()) 
-                    ON DUPLICATE KEY UPDATE 
+                    VALUES (?, ?, 'in_progress', 0, CURRENT_TIMESTAMP) 
+                    ON CONFLICT (employee_id, module_id) DO UPDATE SET
                         status = 'in_progress', 
-                        started_at = COALESCE(started_at, NOW()),
-                        progress_percentage = COALESCE(progress_percentage, 0)
+                        started_at = COALESCE(employee_training.started_at, CURRENT_TIMESTAMP),
+                        progress_percentage = COALESCE(employee_training.progress_percentage, 0)
                 ");
-                $stmt->bind_param("ii", $user_id, $module_id);
                 
-                if ($stmt->execute()) {
+                if ($stmt->execute([$user_id, $module_id])) {
                     $success = "Training module started successfully!";
                 } else {
                     $error = "Failed to start training module.";
@@ -90,33 +86,30 @@ if ($_POST) {
         
         try {
             // Check if the training record exists
-            $stmt = $connection->prepare("
+            $stmt = $pdo->prepare("
                 SELECT id, progress_percentage FROM employee_training 
                 WHERE employee_id = ? AND module_id = ?
             ");
-            $stmt->bind_param("ii", $user_id, $module_id);
-            $stmt->execute();
-            $existing = $stmt->get_result()->fetch_assoc();
+            $stmt->execute([$user_id, $module_id]);
+            $existing = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($existing) {
                 // Update existing record
                 if ($status == 'completed') {
-                    $stmt = $connection->prepare("
+                    $stmt = $pdo->prepare("
                         UPDATE employee_training 
-                        SET status = ?, progress_percentage = ?, completed_at = NOW()
+                        SET status = ?, progress_percentage = ?, completed_at = CURRENT_TIMESTAMP
                         WHERE employee_id = ? AND module_id = ?
                     ");
-                    $stmt->bind_param("siii", $status, $progress, $user_id, $module_id);
                 } else {
-                    $stmt = $connection->prepare("
+                    $stmt = $pdo->prepare("
                         UPDATE employee_training 
                         SET status = ?, progress_percentage = ?, completed_at = NULL
                         WHERE employee_id = ? AND module_id = ?
                     ");
-                    $stmt->bind_param("siii", $status, $progress, $user_id, $module_id);
                 }
                 
-                if ($stmt->execute()) {
+                if ($stmt->execute([$status, $progress, $user_id, $module_id])) {
                     $success = $progress >= 100 ? "Training module completed successfully!" : "Progress updated successfully!";
                 } else {
                     $error = "Failed to update progress.";
@@ -152,7 +145,7 @@ if (isset($_GET['error'])) {
 
 // Get training modules and progress
 try {
-    $stmt = $connection->prepare("
+    $stmt = $pdo->prepare("
         SELECT 
             tm.id,
             tm.module_name,
@@ -170,15 +163,14 @@ try {
         WHERE tm.department = 'ALL' OR tm.department = ?
         ORDER BY tm.is_mandatory DESC, tm.id
     ");
-    $stmt->bind_param("is", $user_id, $employee_department);
-    $stmt->execute();
-    $all_modules = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->execute([$user_id, $employee_department]);
+    $all_modules = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Separate mandatory and optional modules
     $mandatory_modules = [];
     $optional_modules = [];
     foreach ($all_modules as $module) {
-        if ($module['is_mandatory'] == 1) {
+        if ($module['is_mandatory']) {
             $mandatory_modules[] = $module;
         } else {
             $optional_modules[] = $module;
@@ -1387,4 +1379,5 @@ try {
         });
     </script>
 </body>
+
 </html>
