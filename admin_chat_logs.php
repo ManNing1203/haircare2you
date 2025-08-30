@@ -1,4 +1,6 @@
 <?php
+
+<?php
 // Simple chat log viewer (HR only)
 require_once 'includes/config.php';
 require_once 'includes/db.php';
@@ -38,3 +40,4 @@ $conversations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <?php endforeach; ?>
 
 </table>
+
