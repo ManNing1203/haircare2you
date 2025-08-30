@@ -12,12 +12,12 @@ if (!isLoggedIn()) {
 }
 
 // Check database connection
-if (!isset($connection) || $connection->connect_error) {
+if (!isset($pdo)) {
     die("Database connection failed. Please check your database configuration.");
 }
 
 // Handle role transitions and redirect if needed
-handleRoleRedirect($connection, 'employee-dashboard.php');
+handleRoleRedirect($pdo, 'employee-dashboard.php');
 
 // Ensure Employee access only (after checking for role transitions)
 requireRole('employee');
@@ -25,15 +25,14 @@ requireRole('employee');
 $user_id = $_SESSION['user_id'];
 
 // Get employee info with job position - refresh from database to ensure latest data
-$stmt = $connection->prepare("
+$stmt = $pdo->prepare("
     SELECT u.*, jp.title as job_title, jp.department as job_department, jp.description as job_description
     FROM users u 
     LEFT JOIN job_positions jp ON u.job_position_id = jp.id 
     WHERE u.id = ?
 ");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$employee = $stmt->get_result()->fetch_assoc();
+$stmt->execute([$user_id]);
+$employee = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Update session if data has changed
 if ($employee) {
@@ -49,54 +48,51 @@ $user_department = $employee['job_department'] ?: $employee['department'] ?: 'Ge
 // Get overall progress stats
 try {
     // Onboarding tasks progress
-    $stmt = $connection->prepare("
+    $stmt = $pdo->prepare("
         SELECT 
             COUNT(*) as total_tasks,
             SUM(CASE WHEN eo.status = 'completed' THEN 1 ELSE 0 END) as completed_tasks
         FROM onboarding_tasks ot
         LEFT JOIN employee_onboarding eo ON ot.id = eo.task_id AND eo.employee_id = ?
-        WHERE ot.is_mandatory = 1 AND (ot.department = 'ALL' OR ot.department = ?)
+        WHERE ot.is_mandatory = true AND (ot.department = 'ALL' OR ot.department = ?)
     ");
-    $stmt->bind_param("is", $user_id, $user_department);
-    $stmt->execute();
-    $task_progress = $stmt->get_result()->fetch_assoc();
+    $stmt->execute([$user_id, $user_department]);
+    $task_progress = $stmt->fetch(PDO::FETCH_ASSOC);
     $task_completion = $task_progress['total_tasks'] > 0 ? round(($task_progress['completed_tasks'] / $task_progress['total_tasks']) * 100) : 0;
     
     // Training modules progress
-    $stmt = $connection->prepare("
+    $stmt = $pdo->prepare("
         SELECT 
             COUNT(*) as total_modules,
             SUM(CASE WHEN et.status = 'completed' THEN 1 ELSE 0 END) as completed_modules,
             AVG(CASE WHEN et.progress_percentage IS NOT NULL THEN et.progress_percentage ELSE 0 END) as avg_progress
         FROM training_modules tm
         LEFT JOIN employee_training et ON tm.id = et.module_id AND et.employee_id = ?
-        WHERE tm.is_mandatory = 1 AND (tm.department = 'ALL' OR tm.department = ?)
+        WHERE tm.is_mandatory = true AND (tm.department = 'ALL' OR tm.department = ?)
     ");
-    $stmt->bind_param("is", $user_id, $user_department);
-    $stmt->execute();
-    $training_progress = $stmt->get_result()->fetch_assoc();
+    $stmt->execute([$user_id, $user_department]);
+    $training_progress = $stmt->fetch(PDO::FETCH_ASSOC);
     $training_completion = $training_progress['total_modules'] > 0 ? round(($training_progress['completed_modules'] / $training_progress['total_modules']) * 100) : 0;
     $training_avg_progress = round($training_progress['avg_progress'] ?: 0);
     
     // Documents progress
-    $stmt = $connection->prepare("
+    $stmt = $pdo->prepare("
         SELECT 
             COUNT(*) as total_docs,
             SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_docs,
             SUM(CASE WHEN status = 'submitted' THEN 1 ELSE 0 END) as submitted_docs
         FROM employee_documents 
-        WHERE employee_id = ? AND is_required = 1
+        WHERE employee_id = ? AND is_required = true
     ");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $doc_progress = $stmt->get_result()->fetch_assoc();
+    $stmt->execute([$user_id]);
+    $doc_progress = $stmt->fetch(PDO::FETCH_ASSOC);
     $doc_completion = $doc_progress['total_docs'] > 0 ? round(($doc_progress['approved_docs'] / $doc_progress['total_docs']) * 100) : 0;
     
     // Overall completion - use training average instead of just completion
     $overall_completion = round(($task_completion + $training_avg_progress + $doc_completion) / 3);
     
     // Recent activity (last 5 completed items)
-    $stmt = $connection->prepare("
+    $stmt = $pdo->prepare("
         (SELECT 'task' as type, ot.task_name as name, eo.completed_at as date 
          FROM employee_onboarding eo 
          JOIN onboarding_tasks ot ON eo.task_id = ot.id 
@@ -114,32 +110,29 @@ try {
         ORDER BY date DESC 
         LIMIT 5
     ");
-    $stmt->bind_param("iii", $user_id, $user_id, $user_id);
-    $stmt->execute();
-    $recent_activity = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->execute([$user_id, $user_id, $user_id]);
+    $recent_activity = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get pending tasks count
-    $stmt = $connection->prepare("
+    $stmt = $pdo->prepare("
         SELECT COUNT(*) as pending_count
         FROM employee_onboarding eo
         JOIN onboarding_tasks ot ON eo.task_id = ot.id
         WHERE eo.employee_id = ? AND eo.status = 'pending'
     ");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $pending_tasks = $stmt->get_result()->fetch_assoc()['pending_count'];
+    $stmt->execute([$user_id]);
+    $pending_tasks = $stmt->fetchColumn();
     
     // Get support tickets count
-    $stmt = $connection->prepare("
+    $stmt = $pdo->prepare("
         SELECT 
             COUNT(*) as total_tickets,
             SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open_tickets
         FROM support_tickets 
         WHERE employee_id = ?
     ");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $ticket_stats = $stmt->get_result()->fetch_assoc();
+    $stmt->execute([$user_id]);
+    $ticket_stats = $stmt->fetch(PDO::FETCH_ASSOC);
     
 } catch(Exception $e) {
     $error = "Database error: " . $e->getMessage();
@@ -1800,4 +1793,5 @@ if (isset($_GET['transitioned']) && $_GET['transitioned'] === 'true') {
 
     </script>
 </body>
+
 </html>
