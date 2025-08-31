@@ -60,7 +60,7 @@ curl_setopt_array($create_test, [
     ]),
     CURLOPT_HTTPHEADER => [
         'Content-Type: application/json',
-        'x-api-key: ' . EXTRACTA_API_KEY
+        'x-api-key: ' . urlencode(EXTRACTA_API_KEY)
     ],
     CURLOPT_TIMEOUT => 30
 ]);
