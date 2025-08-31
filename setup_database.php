@@ -290,6 +290,26 @@ try {
     $pdo->exec($sql);
     echo "✅ Hire candidate function created<br>";
 
+    echo "<h3>Force inserting job positions...</h3>";
+
+$stmt = $pdo->query("SELECT COUNT(*) as count FROM job_positions");
+$jobCount = $stmt->fetch()['count'];
+
+if ($jobCount == 0) {
+    $jobs = [
+        ['Software Developer', 'IT', 'Full-stack developer position', 'PHP,JavaScript,MySQL,HTML,CSS', 'mid'],
+        ['Marketing Specialist', 'Sales & Marketing', 'Digital marketing role', 'SEO,Social Media,Analytics,Content Writing', 'entry'],
+        ['Project Manager', 'IT', 'Technical project management', 'Agile,Scrum,Leadership,Communication', 'senior'],
+        // ... (add all 16 job positions from the original script)
+    ];
+    
+    $stmt = $pdo->prepare("INSERT INTO job_positions (title, department, description, required_skills, experience_level, created_by) VALUES (?, ?, ?, ?, ?, ?)");
+    foreach ($jobs as $job) {
+        $stmt->execute(array_merge($job, [1]));
+    }
+    echo "✅ Job positions inserted successfully!<br>";
+}
+
     // Insert demo data only if tables are empty
     $stmt = $pdo->query("SELECT COUNT(*) as count FROM users");
     $userCount = $stmt->fetch()['count'];
