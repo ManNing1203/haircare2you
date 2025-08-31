@@ -1,33 +1,22 @@
 <?php
-// Updated test_extracta_real.php with proper POST requests
+// Updated test_extracta_real.php with proper POST requests and fixed config
+require_once 'includes/config.php';
 require_once 'includes/extracta_api.php';
 
 echo "<h2>Extracta.ai Production Test - Fixed Version</h2>\n";
 
-// Get API key from environment variables
-$api_key = getenv('EXTRACTA_API_KEY') ?: $_ENV['EXTRACTA_API_KEY'] ?? null;
-
-// If not found in environment, check if it's defined as a constant
-if (!$api_key && defined('EXTRACTA_API_KEY')) {
-    $api_key = EXTRACTA_API_KEY;
-}
-
-// Check if API key exists
-if (empty($api_key)) {
-    echo "❌ API Key not found in environment variables or constants\n";
-    echo "Environment check:\n";
-    echo "- getenv('EXTRACTA_API_KEY'): " . (getenv('EXTRACTA_API_KEY') ? 'Found' : 'Not found') . "\n";
-    echo "- \$_ENV['EXTRACTA_API_KEY']: " . (isset($_ENV['EXTRACTA_API_KEY']) ? 'Found' : 'Not found') . "\n";
-    echo "- defined('EXTRACTA_API_KEY'): " . (defined('EXTRACTA_API_KEY') ? 'Found' : 'Not found') . "\n";
+// Check if API key constant is defined (should be set in config.php now)
+if (!defined('EXTRACTA_API_KEY') || empty(EXTRACTA_API_KEY)) {
+    echo "❌ API Key not found or empty\n";
+    echo "Config check:\n";
+    echo "- EXTRACTA_API_KEY constant defined: " . (defined('EXTRACTA_API_KEY') ? 'Yes' : 'No') . "\n";
+    echo "- EXTRACTA_API_KEY value: " . (defined('EXTRACTA_API_KEY') ? (empty(EXTRACTA_API_KEY) ? 'Empty' : 'Has value (' . strlen(EXTRACTA_API_KEY) . ' chars)') : 'Not defined') . "\n";
+    echo "- Environment \$_ENV['EXTRACTA_API_KEY']: " . (isset($_ENV['EXTRACTA_API_KEY']) ? 'Found' : 'Not found') . "\n";
+    echo "- Environment getenv('EXTRACTA_API_KEY'): " . (getenv('EXTRACTA_API_KEY') ? 'Found' : 'Not found') . "\n";
     exit;
 }
 
-// Define the constant for the ExtractaAPI class
-if (!defined('EXTRACTA_API_KEY')) {
-    define('EXTRACTA_API_KEY', $api_key);
-}
-
-echo "✅ API Key found\n\n";
+echo "✅ API Key found and loaded from config.php (" . strlen(EXTRACTA_API_KEY) . " characters)\n\n";
 
 echo "=== Testing Domain Connectivity ===\n";
 $domain_test = curl_init();
