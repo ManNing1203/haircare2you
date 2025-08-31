@@ -53,28 +53,28 @@ try {
     $existing_docs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $existing_types = array_column($existing_docs, 'document_type');
     
-    // Define required documents
     $required_docs = [
-        ['Employment Contract', 'contract', 'Your employment contract and terms of service', true],
-        ['Personal Information Form', 'personal_form', 'Complete personal details and emergency contacts', true],
-        ['Bank Details Form', 'bank_form', 'Banking information for salary processing', true],
-        ['ID Copy', 'identification', 'Copy of your identification document (IC/Passport)', true],
-        ['Educational Certificates', 'education', 'Copies of your educational qualifications', true],
-        ['Medical Certificate', 'medical', 'Health clearance certificate', false],
-        ['Previous Employment Letter', 'employment_history', 'Letter from previous employer (if applicable)', false]
-    ];
-    
-    // Only insert documents that don't already exist
-    foreach ($required_docs as $doc) {
-        if (!in_array($doc[1], $existing_types)) {
-            $stmt = $pdo->prepare("
-                INSERT INTO employee_documents (employee_id, document_name, document_type, description, is_required, status) 
-                VALUES (?, ?, ?, ?, ?, 'pending')
-                ON CONFLICT (employee_id, document_type) DO NOTHING
-            ");
-            $stmt->execute([$user_id, $doc[0], $doc[1], $doc[2], $doc[3]]);
-        }
+    ['Employment Contract', 'contract', 'Your employment contract and terms of service', true],
+    ['Personal Information Form', 'personal_form', 'Complete personal details and emergency contacts', true],
+    ['Bank Details Form', 'bank_form', 'Banking information for salary processing', true],
+    ['ID Copy', 'identification', 'Copy of your identification document (IC/Passport)', true],
+    ['Educational Certificates', 'education', 'Copies of your educational qualifications', true],
+    ['Medical Certificate', 'medical', 'Health clearance certificate', false],
+    ['Previous Employment Letter', 'employment_history', 'Letter from previous employer (if applicable)', false]
+];
+
+// Only insert documents that don't already exist
+foreach ($required_docs as $doc) {
+    if (!in_array($doc[1], $existing_types)) {
+        $stmt = $pdo->prepare("
+            INSERT INTO employee_documents (employee_id, document_name, document_type, description, is_required, status) 
+            VALUES (?, ?, ?, ?, ?, 'pending')
+            ON CONFLICT (employee_id, document_type) DO NOTHING
+        ");
+        // Fix: Convert boolean to string for PostgreSQL
+        $stmt->execute([$user_id, $doc[0], $doc[1], $doc[2], $doc[3] ? 'true' : 'false']);
     }
+}
     
     // Get all documents for the employee
     $stmt = $pdo->prepare("
@@ -1041,21 +1041,25 @@ function getFileIcon($file_path) {
 
             <!-- Show cleanup option if duplicates detected -->
             <?php
-            $duplicate_count = 0;
-            $stmt = $connection->prepare("
-                SELECT document_type, COUNT(*) as count 
-                FROM employee_documents 
-                WHERE employee_id = ? 
-                GROUP BY document_type 
-                HAVING COUNT(*) > 1
-            ");
-            $stmt->bind_param("i", $user_id);
-            $stmt->execute();
-            $duplicates = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            foreach ($duplicates as $dup) {
-                $duplicate_count += $dup['count'] - 1;
-            }
-            ?>
+$duplicate_count = 0;
+try {
+    $stmt = $pdo->prepare("
+        SELECT document_type, COUNT(*) as count 
+        FROM employee_documents 
+        WHERE employee_id = ? 
+        GROUP BY document_type 
+        HAVING COUNT(*) > 1
+    ");
+    $stmt->execute([$user_id]);
+    $duplicates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($duplicates as $dup) {
+        $duplicate_count += $dup['count'] - 1;
+    }
+} catch(Exception $e) {
+    error_log("Duplicate check error: " . $e->getMessage());
+    $duplicate_count = 0;
+}
+?>
 
             <?php if ($duplicate_count > 0): ?>
             <div class="cleanup-section">
@@ -1070,28 +1074,33 @@ function getFileIcon($file_path) {
             <?php endif; ?>
 
             <?php 
-            // Handle cleanup if requested
-            if (isset($_GET['cleanup']) && $_GET['cleanup'] == '1') {
-                try {
-                    // Keep only the latest entry for each document type
-                    $connection->query("
-                        DELETE ed1 FROM employee_documents ed1
-                        INNER JOIN employee_documents ed2 
-                        WHERE ed1.employee_id = $user_id 
-                        AND ed2.employee_id = $user_id
-                        AND ed1.document_type = ed2.document_type
-                        AND ed1.id < ed2.id
-                    ");
-                    
-                    echo '<script>
-                        alert("✅ Duplicate documents have been cleaned up!");
-                        window.location.href = "' . $_SERVER['PHP_SELF'] . '";
-                    </script>';
-                } catch(Exception $e) {
-                    echo '<script>alert("❌ Error during cleanup: ' . $e->getMessage() . '");</script>';
-                }
-            }
-            ?>
+// Handle cleanup if requested
+if (isset($_GET['cleanup']) && $_GET['cleanup'] == '1') {
+    try {
+        // Keep only the latest entry for each document type
+        $stmt = $pdo->prepare("
+            DELETE FROM employee_documents 
+            WHERE id IN (
+                SELECT id FROM (
+                    SELECT id,
+                           ROW_NUMBER() OVER (PARTITION BY document_type ORDER BY id DESC) as rn
+                    FROM employee_documents 
+                    WHERE employee_id = ?
+                ) ranked 
+                WHERE rn > 1
+            )
+        ");
+        $stmt->execute([$user_id]);
+        
+        echo '<script>
+            alert("✅ Duplicate documents have been cleaned up!");
+            window.location.href = "' . $_SERVER['PHP_SELF'] . '";
+        </script>';
+    } catch(Exception $e) {
+        echo '<script>alert("❌ Error during cleanup: ' . addslashes($e->getMessage()) . '");</script>';
+    }
+}
+?>
 
             <!-- Progress Overview -->
             <div class="progress-overview">
@@ -1509,3 +1518,4 @@ function getFileIcon($file_path) {
 </body>
 
 </html>
+
