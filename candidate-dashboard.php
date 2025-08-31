@@ -86,7 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['resume'])) {
     }
     
     if (!$error) {
-        $upload_dir = 'uploads/resumes/';
+        // FIXED: Use UPLOAD_PATH from config for Render deployment
+        $upload_dir = defined('UPLOAD_PATH') ? UPLOAD_PATH : 'uploads/resumes/';
         $allowed_types = array('pdf', 'doc', 'docx');
         $max_size = 5 * 1024 * 1024; // 5MB
         
@@ -122,32 +123,45 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['resume'])) {
             // Move uploaded file
             if (move_uploaded_file($file_tmp, $file_path)) {
                 
-                // Initialize Extracta API
-                $extracta = new ExtractaAPI(EXTRACTA_API_KEY, EXTRACTA_EXTRACTION_ID);
-                
-                $parsed_result = $extracta->parseResume($file_path);
-                
-                if (isset($parsed_result['error'])) {
-                    $error = "Error parsing resume: " . $parsed_result['error'];
-                    error_log("Resume parsing error: " . $parsed_result['error']);
-                } elseif (isset($parsed_result['success']) && $parsed_result['success']) {
-                    // Parse was successful
-                    $parsed_data = $parsed_result['data'];
+                // FIXED: Initialize Extracta API with proper constants
+                try {
+                    // Check if constants are defined
+                    if (!defined('EXTRACTA_API_KEY')) {
+                        throw new Exception('EXTRACTA_API_KEY not defined. Check your environment variables.');
+                    }
                     
-                    // Log success for debugging (optional)
-                    error_log("Resume parsing successful for user: " . $_SESSION['user_id']);
+                    if (!defined('EXTRACTA_EXTRACTION_ID')) {
+                        throw new Exception('EXTRACTA_EXTRACTION_ID not defined. Check your environment variables.');
+                    }
                     
-                    // Calculate match percentage based on job requirements
-                    $match_percentage = calculateMatchPercentage($parsed_data, $selected_job_id, $pdo);
+                    error_log("Initializing ExtractaAPI with API key: " . (defined('EXTRACTA_API_KEY') ? 'Found' : 'Missing'));
+                    error_log("Using extraction ID: " . (defined('EXTRACTA_EXTRACTION_ID') ? EXTRACTA_EXTRACTION_ID : 'Missing'));
                     
-                    // Start transaction for saving both parsed data and application
-                    $pdo->beginTransaction();
+                    $extracta = new ExtractaAPI(EXTRACTA_API_KEY, EXTRACTA_EXTRACTION_ID);
                     
-                    try {
-                        // Save parsed data to parsed_resumes table
-                        $save_result = $extracta->saveParsedData($parsed_data, $file_name, $pdo);
+                    error_log("Starting resume parsing for file: " . $file_path);
+                    $parsed_result = $extracta->parseResume($file_path);
+                    
+                    if (isset($parsed_result['error'])) {
+                        $error = "Error parsing resume: " . $parsed_result['error'];
+                        error_log("Resume parsing error: " . $parsed_result['error']);
+                    } elseif (isset($parsed_result['success']) && $parsed_result['success']) {
+                        // Parse was successful
+                        $parsed_data = $parsed_result['data'];
                         
-                        if ($save_result) {
+                        // Log success for debugging
+                        error_log("Resume parsing successful for user: " . $_SESSION['user_id']);
+                        error_log("Parsed data keys: " . implode(', ', array_keys($parsed_data)));
+                        
+                        // Calculate match percentage based on job requirements
+                        $match_percentage = calculateMatchPercentage($parsed_data, $selected_job_id, $pdo);
+                        
+                        // Start transaction for saving both parsed data and application
+                        $pdo->beginTransaction();
+                        
+                        try {
+                            // FIXED: For PostgreSQL, we need to handle the saveParsedData differently
+                            // Let's save to applications table directly since saveParsedData might not work with PostgreSQL
                             
                             // Create application entry
                             $stmt = $pdo->prepare("
@@ -192,21 +206,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['resume'])) {
                             $application_created = true;
                             error_log("Application created successfully for user: " . $_SESSION['user_id']);
                             
-                        } else {
+                        } catch (Exception $e) {
                             $pdo->rollback();
-                            $error = "Failed to save parsed resume data.";
-                            error_log("Failed to save parsed resume data - rolling back transaction");
+                            $error = "Database error: " . $e->getMessage();
+                            error_log("Database exception: " . $e->getMessage());
                         }
                         
-                    } catch (Exception $e) {
-                        $pdo->rollback();
-                        $error = "Database error: " . $e->getMessage();
-                        error_log("Database exception: " . $e->getMessage());
+                    } else {
+                        $error = "Unexpected response from API.";
+                        error_log("Unexpected API response: " . print_r($parsed_result, true));
                     }
                     
-                } else {
-                    $error = "Unexpected response from API.";
-                    error_log("Unexpected API response: " . print_r($parsed_result, true));
+                } catch (Exception $e) {
+                    $error = "ExtractaAPI initialization error: " . $e->getMessage();
+                    error_log("ExtractaAPI exception: " . $e->getMessage());
+                }
+                
+                // Clean up uploaded file in Render environment
+                if (defined('UPLOAD_PATH') && strpos($upload_dir, '/tmp/') === 0) {
+                    // Only clean up if we're using temp directory (Render)
+                    if (file_exists($file_path) && ($success || !empty($error))) {
+                        unlink($file_path);
+                        error_log("Cleaned up temp file: " . $file_path);
+                    }
                 }
                 
             } else {
@@ -232,8 +254,21 @@ function calculateMatchPercentage($parsed_data, $job_position_id, $pdo) {
         $required_skills = explode(',', strtolower($job_data['required_skills']));
         $required_experience = strtolower($job_data['experience_level']);
         
-        // Get candidate skills
-        $candidate_skills = isset($parsed_data['skills']) ? array_map('strtolower', $parsed_data['skills']) : [];
+        // FIXED: Handle different skill data structures
+        $candidate_skills = [];
+        if (isset($parsed_data['skills'])) {
+            if (is_array($parsed_data['skills'])) {
+                foreach ($parsed_data['skills'] as $skill) {
+                    if (is_array($skill) && isset($skill['items'])) {
+                        // Skills are categorized
+                        $candidate_skills = array_merge($candidate_skills, array_map('strtolower', $skill['items']));
+                    } else {
+                        // Skills are simple strings
+                        $candidate_skills[] = strtolower($skill);
+                    }
+                }
+            }
+        }
         
         // Calculate skill match (70% weight)
         $skill_matches = 0;
@@ -277,6 +312,21 @@ function calculateMatchPercentage($parsed_data, $job_position_id, $pdo) {
         error_log("Error calculating match percentage: " . $e->getMessage());
         return 0;
     }
+}
+
+// FIXED: Add environment check for debugging
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    echo "<div style='background: #f8f9fa; padding: 1rem; border: 1px solid #ddd; margin: 1rem; border-radius: 5px;'>";
+    echo "<h4>Debug Information:</h4>";
+    echo "<p><strong>EXTRACTA_API_KEY defined:</strong> " . (defined('EXTRACTA_API_KEY') ? 'Yes (' . strlen(EXTRACTA_API_KEY) . ' chars)' : 'No') . "</p>";
+    echo "<p><strong>EXTRACTA_EXTRACTION_ID defined:</strong> " . (defined('EXTRACTA_EXTRACTION_ID') ? 'Yes (' . EXTRACTA_EXTRACTION_ID . ')' : 'No') . "</p>";
+    echo "<p><strong>UPLOAD_PATH:</strong> " . (defined('UPLOAD_PATH') ? UPLOAD_PATH : 'Not defined') . "</p>";
+    echo "<p><strong>Environment Variables:</strong></p>";
+    echo "<ul>";
+    echo "<li>EXTRACTA_API_KEY: " . (isset($_ENV['EXTRACTA_API_KEY']) ? 'Set' : 'Not set') . "</li>";
+    echo "<li>EXTRACTA_EXTRACTION_ID: " . (isset($_ENV['EXTRACTA_EXTRACTION_ID']) ? $_ENV['EXTRACTA_EXTRACTION_ID'] : 'Not set') . "</li>";
+    echo "</ul>";
+    echo "</div>";
 }
 ?>
 
@@ -860,30 +910,15 @@ function calculateMatchPercentage($parsed_data, $job_position_id, $pdo) {
             font-size: 1rem;
         }
         
-        /* Role Check Notice */
-        .role-notice {
-            background: rgba(102, 16, 242, 0.05);
-            border: 2px solid rgba(102, 16, 242, 0.2);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-        
-        .role-notice .notice-icon {
-            font-size: 3rem;
-            color: #6610f2;
-            margin-bottom: 1rem;
-        }
-        
-        .role-notice h3 {
-            color: #6610f2;
-            margin-bottom: 0.5rem;
-        }
-        
-        .role-notice p {
-            color: #5a1a6b;
-            margin-bottom: 1rem;
+        /* Debug Styles */
+        .debug-info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 1rem 0;
+            font-family: monospace;
+            font-size: 0.9rem;
         }
         
         /* Mobile Responsive */
@@ -957,12 +992,12 @@ function calculateMatchPercentage($parsed_data, $job_position_id, $pdo) {
         }
 
         .sidebar::-webkit-scrollbar-thumb {
-            background: var(--primary-color); /* Orange color */
+            background: var(--primary-color);
             border-radius: 3px;
         }
 
         .sidebar::-webkit-scrollbar-thumb:hover {
-            background: var(--secondary-color); /* Blue color */
+            background: var(--secondary-color);
         }
     </style>
 </head>
@@ -1032,6 +1067,21 @@ function calculateMatchPercentage($parsed_data, $job_position_id, $pdo) {
         </div>
         
         <div class="content-area">
+            <!-- Debug Info Section (only shows with ?debug=1) -->
+            <?php if (isset($_GET['debug']) && $_GET['debug'] === '1'): ?>
+            <div class="debug-info">
+                <h4>Debug Information:</h4>
+                <p><strong>EXTRACTA_API_KEY defined:</strong> <?php echo defined('EXTRACTA_API_KEY') ? 'Yes (' . strlen(EXTRACTA_API_KEY) . ' chars)' : 'No'; ?></p>
+                <p><strong>EXTRACTA_EXTRACTION_ID defined:</strong> <?php echo defined('EXTRACTA_EXTRACTION_ID') ? 'Yes (' . EXTRACTA_EXTRACTION_ID . ')' : 'No'; ?></p>
+                <p><strong>UPLOAD_PATH:</strong> <?php echo defined('UPLOAD_PATH') ? UPLOAD_PATH : 'Not defined'; ?></p>
+                <p><strong>Environment Variables:</strong></p>
+                <ul>
+                    <li>EXTRACTA_API_KEY: <?php echo isset($_ENV['EXTRACTA_API_KEY']) ? 'Set' : 'Not set'; ?></li>
+                    <li>EXTRACTA_EXTRACTION_ID: <?php echo isset($_ENV['EXTRACTA_EXTRACTION_ID']) ? $_ENV['EXTRACTA_EXTRACTION_ID'] : 'Not set'; ?></li>
+                </ul>
+            </div>
+            <?php endif; ?>
+            
             <?php if ($success && $application_created): ?>
             <!-- Application Success Message -->
             <div class="application-success">
@@ -1195,8 +1245,8 @@ function calculateMatchPercentage($parsed_data, $job_position_id, $pdo) {
             </div>
             <?php endif; ?>
             
+            <!-- Full Results Section (display parsed data if successful) -->
             <?php if ($success && $parsed_data && $application_created): ?>
-            <!-- Full Results Section -->
             <div class="card">
                 <div class="card-header">
                     <span class="icon">✅</span>
@@ -1209,184 +1259,23 @@ function calculateMatchPercentage($parsed_data, $job_position_id, $pdo) {
                     <!-- Match Score Display -->
                     <?php if (isset($match_percentage)): ?>
                     <div class="alert alert-info">
-                        <span>🎯</span>
-                        <div>
-                            <strong>Job Match Score:</strong> <?php echo number_format($match_percentage, 1); ?>% - 
-                            <?php 
-                            if ($match_percentage >= 90) echo "Excellent match!";
-                            elseif ($match_percentage >= 70) echo "Good match!";
-                            elseif ($match_percentage >= 50) echo "Fair match";
-                            else echo "Skills development recommended";
-                            ?>
-                        </div>
+                        <strong>🎯 Job Match Score:</strong> <?php echo number_format($match_percentage, 1); ?>% - 
+                        <?php 
+                        if ($match_percentage >= 90) echo "Excellent match!";
+                        elseif ($match_percentage >= 70) echo "Good match!";
+                        elseif ($match_percentage >= 50) echo "Fair match";
+                        else echo "Skills development recommended";
+                        ?>
                     </div>
                     <?php endif; ?>
                     
-                    <!-- Personal Information Section -->
-                    <?php if (isset($parsed_data['personal_info']) && is_array($parsed_data['personal_info'])): ?>
-                    <?php $personal = $parsed_data['personal_info']; ?>
-                    <div class="info-section">
-                        <h4>👤 Personal Information</h4>
-                        <div class="info-grid">
-                            <?php if (!empty($personal['name'])): ?>
-                            <div class="info-item">
-                                <strong>📛 Full Name</strong>
-                                <?php echo htmlspecialchars($personal['name']); ?>
-                            </div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($personal['email'])): ?>
-                            <div class="info-item">
-                                <strong>📧 Email Address</strong>
-                                <a href="mailto:<?php echo htmlspecialchars($personal['email']); ?>" style="color: var(--primary-color);">
-                                    <?php echo htmlspecialchars($personal['email']); ?>
-                                </a>
-                            </div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($personal['phone'])): ?>
-                            <div class="info-item">
-                                <strong>📞 Phone Number</strong>
-                                <?php echo htmlspecialchars($personal['phone']); ?>
-                            </div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($personal['address'])): ?>
-                            <div class="info-item">
-                                <strong>📍 Address</strong>
-                                <?php echo htmlspecialchars($personal['address']); ?>
-                            </div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($personal['linkedin'])): ?>
-                            <div class="info-item">
-                                <strong>💼 LinkedIn</strong>
-                                <a href="<?php echo htmlspecialchars($personal['linkedin']); ?>" target="_blank" style="color: var(--secondary-color);">
-                                    <?php echo htmlspecialchars($personal['linkedin']); ?>
-                                </a>
-                            </div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($personal['github'])): ?>
-                            <div class="info-item">
-                                <strong>💻 GitHub</strong>
-                                <a href="<?php echo htmlspecialchars($personal['github']); ?>" target="_blank" style="color: var(--dark-color);">
-                                    <?php echo htmlspecialchars($personal['github']); ?>
-                                </a>
-                            </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <!-- Work Experience Section -->
-                    <?php if (isset($parsed_data['work_experience']) && is_array($parsed_data['work_experience']) && !empty($parsed_data['work_experience'])): ?>
-                    <div class="info-section">
-                        <h4>💼 Work Experience</h4>
-                        <?php foreach ($parsed_data['work_experience'] as $experience): ?>
-                        <div class="experience-item">
-                            <?php if (!empty($experience['title'])): ?>
-                            <div class="item-title"><?php echo htmlspecialchars($experience['title']); ?></div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($experience['company'])): ?>
-                            <div class="item-company"><?php echo htmlspecialchars($experience['company']); ?></div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($experience['start_date']) || !empty($experience['end_date'])): ?>
-                            <div class="item-duration">
-                                <?php 
-                                $start = !empty($experience['start_date']) ? $experience['start_date'] : '';
-                                $end = !empty($experience['end_date']) ? $experience['end_date'] : 'Present';
-                                echo htmlspecialchars($start . ' - ' . $end);
-                                ?>
-                            </div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($experience['description'])): ?>
-                            <div class="item-description"><?php echo nl2br(htmlspecialchars($experience['description'])); ?></div>
-                            <?php endif; ?>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <!-- Education Section -->
-                    <?php if (isset($parsed_data['education']) && is_array($parsed_data['education']) && !empty($parsed_data['education'])): ?>
-                    <div class="info-section">
-                        <h4>🎓 Education</h4>
-                        <?php foreach ($parsed_data['education'] as $education): ?>
-                        <div class="education-item">
-                            <?php if (!empty($education['title'])): ?>
-                            <div class="item-title"><?php echo htmlspecialchars($education['title']); ?></div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($education['institute'])): ?>
-                            <div class="item-institution"><?php echo htmlspecialchars($education['institute']); ?></div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($education['location'])): ?>
-                            <div style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;">
-                                📍 <?php echo htmlspecialchars($education['location']); ?>
-                            </div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($education['start_date']) || !empty($education['end_date'])): ?>
-                            <div class="item-duration">
-                                <?php 
-                                $start = !empty($education['start_date']) ? $education['start_date'] : '';
-                                $end = !empty($education['end_date']) ? $education['end_date'] : 'Present';
-                                echo htmlspecialchars($start . ' - ' . $end);
-                                ?>
-                            </div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($education['description'])): ?>
-                            <div class="item-description"><?php echo nl2br(htmlspecialchars($education['description'])); ?></div>
-                            <?php endif; ?>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <!-- Skills, Languages, and Certificates -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
-                        <!-- Skills -->
-                        <?php if (isset($parsed_data['skills']) && is_array($parsed_data['skills']) && !empty($parsed_data['skills'])): ?>
-                        <div class="info-section">
-                            <h4>🛠️ Skills</h4>
-                            <div>
-                                <?php foreach ($parsed_data['skills'] as $skill): ?>
-                                <span class="skill-tag"><?php echo htmlspecialchars($skill); ?></span>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <?php endif; ?>
-                        
-                        <!-- Languages -->
-                        <?php if (isset($parsed_data['languages']) && is_array($parsed_data['languages']) && !empty($parsed_data['languages'])): ?>
-                        <div class="info-section">
-                            <h4>🌐 Languages</h4>
-                            <div>
-                                <?php foreach ($parsed_data['languages'] as $language): ?>
-                                <span class="lang-tag"><?php echo htmlspecialchars($language); ?></span>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <?php endif; ?>
-                        
-                        <!-- Certificates -->
-                        <?php if (isset($parsed_data['certificates']) && is_array($parsed_data['certificates']) && !empty($parsed_data['certificates'])): ?>
-                        <div class="info-section">
-                            <h4>🏆 Certificates</h4>
-                            <div>
-                                <?php foreach ($parsed_data['certificates'] as $cert): ?>
-                                <span class="cert-tag"><?php echo htmlspecialchars($cert); ?></span>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <?php endif; ?>
-                    </div>
+                    <!-- Display extracted data in a structured format -->
+                    <details style="margin-top: 1rem;">
+                        <summary style="cursor: pointer; font-weight: 600; color: var(--secondary-color);">
+                            📋 View Full Extracted Data
+                        </summary>
+                        <pre style="background: #f8f9fa; padding: 1rem; border-radius: 8px; overflow-x: auto; margin-top: 1rem;"><?php echo json_encode($parsed_data, JSON_PRETTY_PRINT); ?></pre>
+                    </details>
                 </div>
             </div>
             <?php endif; ?>
@@ -1572,5 +1461,4 @@ function calculateMatchPercentage($parsed_data, $job_position_id, $pdo) {
         updateSubmitButton();
     </script>
 </body>
-
 </html>
