@@ -4,9 +4,14 @@ class ExtractaAPI {
     private $base_url = 'https://api.extracta.ai/api/v1/';
     private $extraction_id; // Will store the extraction template ID
     
-    public function __construct($api_key, $extraction_id = null) {
-        $this->api_key = $api_key;
+    public function __construct($api_key = null, $extraction_id = null) {
+        // Use provided API key or get from constant
+        $this->api_key = $api_key ?: (defined('EXTRACTA_API_KEY') ? EXTRACTA_API_KEY : null);
         $this->extraction_id = $extraction_id;
+        
+        if (!$this->api_key) {
+            throw new Exception('API key is required');
+        }
     }
     
     /**
@@ -26,49 +31,134 @@ class ExtractaAPI {
             ],
             'fields' => [
                 [
+                    'key' => 'personal_info',
+                    'description' => 'Personal information including name, email, phone, address, LinkedIn, GitHub',
+                    'type' => 'object',
+                    'properties' => [
+                        'name' => ['description' => 'Full name', 'example' => 'John Doe'],
+                        'email' => ['description' => 'Email address', 'example' => 'john.doe@email.com'],
+                        'phone' => ['description' => 'Phone number', 'example' => '+1 (555) 123-4567'],
+                        'address' => ['description' => 'Address or location', 'example' => 'New York, NY'],
+                        'linkedin' => ['description' => 'LinkedIn profile URL', 'example' => 'linkedin.com/in/johndoe'],
+                        'github' => ['description' => 'GitHub profile URL', 'example' => 'github.com/johndoe']
+                    ]
+                ],
+                [
+                    'key' => 'work_experience',
+                    'description' => 'Array of work experience entries',
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'title' => ['description' => 'Job title', 'example' => 'Software Engineer'],
+                            'company' => ['description' => 'Company name', 'example' => 'ABC Corp'],
+                            'location' => ['description' => 'Job location', 'example' => 'San Francisco, CA'],
+                            'start_date' => ['description' => 'Start date', 'example' => '2020-01'],
+                            'end_date' => ['description' => 'End date or "Present"', 'example' => '2023-12'],
+                            'description' => ['description' => 'Job description', 'example' => 'Developed web applications...']
+                        ]
+                    ]
+                ],
+                [
+                    'key' => 'education',
+                    'description' => 'Array of education entries',
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'degree' => ['description' => 'Degree name', 'example' => 'Bachelor of Computer Science'],
+                            'institution' => ['description' => 'School/University name', 'example' => 'University of XYZ'],
+                            'location' => ['description' => 'School location', 'example' => 'Boston, MA'],
+                            'graduation_date' => ['description' => 'Graduation date', 'example' => '2020-05'],
+                            'gpa' => ['description' => 'GPA if mentioned', 'example' => '3.8']
+                        ]
+                    ]
+                ],
+                [
+                    'key' => 'skills',
+                    'description' => 'Array of skills',
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'category' => ['description' => 'Skill category', 'example' => 'Programming Languages'],
+                            'items' => ['description' => 'List of skills', 'example' => ['JavaScript', 'Python', 'Java']]
+                        ]
+                    ]
+                ],
+                [
+                    'key' => 'languages',
+                    'description' => 'Array of languages',
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'language' => ['description' => 'Language name', 'example' => 'Spanish'],
+                            'proficiency' => ['description' => 'Proficiency level', 'example' => 'Fluent']
+                        ]
+                    ]
+                ],
+                [
+                    'key' => 'certificates',
+                    'description' => 'Array of certifications',
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'name' => ['description' => 'Certificate name', 'example' => 'AWS Solutions Architect'],
+                            'issuer' => ['description' => 'Issuing organization', 'example' => 'Amazon Web Services'],
+                            'date' => ['description' => 'Issue date', 'example' => '2023-06'],
+                            'expiry' => ['description' => 'Expiry date if applicable', 'example' => '2026-06']
+                        ]
+                    ]
+                ]
+            ]
+        ];
+        
+        return $this->makeRequest('POST', $url, ['extractionDetails' => $extraction_details]);
+    }
+    
+    /**
+     * Simple extraction template creation (for testing)
+     * @return array - Response with extractionId or error
+     */
+    public function createExtractionTemplate() {
+        $url = $this->base_url . 'createExtraction';
+        
+        $simple_template = [
+            'name' => 'Resume Parser - Simple',
+            'description' => 'Basic resume information extraction',
+            'language' => 'English',
+            'fields' => [
+                [
                     'key' => 'name',
                     'description' => 'Full name of the candidate',
                     'example' => 'John Doe'
                 ],
                 [
                     'key' => 'email',
-                    'description' => 'Email address of the candidate',
-                    'example' => 'john.doe@email.com'
+                    'description' => 'Email address',
+                    'example' => 'john@example.com'
                 ],
                 [
                     'key' => 'phone',
-                    'description' => 'Phone number of the candidate',
-                    'example' => '+1 (555) 123-4567'
-                ],
-                [
-                    'key' => 'address',
-                    'description' => 'Address or location of the candidate',
-                    'example' => 'New York, NY'
-                ],
-                [
-                    'key' => 'experience',
-                    'description' => 'Work experience including job titles, companies, and dates',
-                    'example' => 'Software Engineer at ABC Corp (2020-2023)'
-                ],
-                [
-                    'key' => 'education',
-                    'description' => 'Educational background including degrees, institutions, and dates',
-                    'example' => 'Bachelor of Computer Science, University of XYZ (2016-2020)'
+                    'description' => 'Phone number',
+                    'example' => '+1-555-123-4567'
                 ],
                 [
                     'key' => 'skills',
-                    'description' => 'Technical and professional skills',
-                    'example' => 'JavaScript, Python, React, Node.js'
+                    'description' => 'List of skills and technologies',
+                    'example' => 'JavaScript, Python, React'
                 ],
                 [
-                    'key' => 'summary',
-                    'description' => 'Professional summary or objective',
-                    'example' => 'Experienced software developer with 5+ years...'
+                    'key' => 'experience',
+                    'description' => 'Work experience summary',
+                    'example' => 'Software Engineer at ABC Corp (2020-2023)'
                 ]
             ]
         ];
         
-        return $this->makeRequest('POST', $url, ['extractionDetails' => $extraction_details]);
+        return $this->makeRequest('POST', $url, ['extractionDetails' => $simple_template]);
     }
     
     /**
@@ -90,6 +180,12 @@ class ExtractaAPI {
             return ['error' => 'File not found: ' . $file_path];
         }
         
+        // Check file size (limit to reasonable size)
+        $file_size = filesize($file_path);
+        if ($file_size > 10 * 1024 * 1024) { // 10MB limit
+            return ['error' => 'File too large. Maximum size is 10MB.'];
+        }
+        
         $url = $this->base_url . 'uploadFiles';
         
         // Prepare the file for upload
@@ -98,7 +194,7 @@ class ExtractaAPI {
         // Prepare POST data
         $post_data = [
             'extractionId' => $extraction_id,
-            'files' => $cfile
+            'files' => [$cfile] // Note: files should be an array
         ];
         
         // Initialize cURL
@@ -110,12 +206,15 @@ class ExtractaAPI {
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $post_data,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 60, // Longer timeout for file upload
+            CURLOPT_TIMEOUT => 120, // Longer timeout for file upload
             CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $this->api_key,
+                'x-api-key: ' . $this->api_key, // Use x-api-key instead of Authorization
                 'Accept: application/json'
                 // Don't set Content-Type for multipart/form-data - let cURL handle it
-            ]
+            ],
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 3
         ]);
         
         // Execute the request
@@ -131,7 +230,7 @@ class ExtractaAPI {
         }
         
         // Handle HTTP errors
-        if ($http_code !== 200) {
+        if ($http_code < 200 || $http_code >= 300) {
             return ['error' => 'HTTP Error ' . $http_code . ': ' . $response];
         }
         
@@ -139,7 +238,7 @@ class ExtractaAPI {
         $decoded_response = json_decode($response, true);
         
         if (json_last_error() !== JSON_ERROR_NONE) {
-            return ['error' => 'Invalid JSON response: ' . json_last_error_msg()];
+            return ['error' => 'Invalid JSON response: ' . json_last_error_msg() . ' - Raw response: ' . substr($response, 0, 500)];
         }
         
         return $decoded_response;
@@ -182,17 +281,17 @@ class ExtractaAPI {
         
         // Extract batch ID from upload response
         if (!isset($upload_result['batchId'])) {
-            return ['error' => 'No batch ID returned from upload'];
+            return ['error' => 'No batch ID returned from upload. Response: ' . json_encode($upload_result)];
         }
         
         $batch_id = $upload_result['batchId'];
         $extraction_id = $upload_result['extractionId'] ?? $this->extraction_id;
         
         // Step 2: Wait a moment for processing to start
-        sleep(2);
+        sleep(3);
         
         // Step 3: Poll for results (with timeout)
-        $max_attempts = 30; // 30 attempts with 2-second delays = 1 minute max wait
+        $max_attempts = 60; // 60 attempts with 3-second delays = 3 minutes max wait
         $attempts = 0;
         
         while ($attempts < $max_attempts) {
@@ -205,23 +304,36 @@ class ExtractaAPI {
             // Check if any files are processed
             if (isset($results['files']) && is_array($results['files'])) {
                 foreach ($results['files'] as $file) {
-                    if (isset($file['status']) && $file['status'] === 'processed') {
-                        return [
-                            'success' => true,
-                            'data' => $file['result'] ?? [],
-                            'filename' => $file['fileName'] ?? 'unknown',
-                            'url' => $file['url'] ?? ''
-                        ];
+                    if (isset($file['status'])) {
+                        if ($file['status'] === 'processed') {
+                            return [
+                                'success' => true,
+                                'data' => $file['result'] ?? [],
+                                'filename' => $file['fileName'] ?? 'unknown',
+                                'url' => $file['url'] ?? '',
+                                'file_id' => $file['fileId'] ?? ''
+                            ];
+                        } elseif ($file['status'] === 'failed') {
+                            return [
+                                'error' => 'File processing failed: ' . ($file['error'] ?? 'Unknown error'),
+                                'filename' => $file['fileName'] ?? 'unknown'
+                            ];
+                        }
                     }
                 }
             }
             
             // Wait before next attempt
-            sleep(2);
+            sleep(3);
             $attempts++;
+            
+            // Log progress every 10 attempts
+            if ($attempts % 10 === 0) {
+                error_log("Resume parsing - attempt $attempts of $max_attempts");
+            }
         }
         
-        return ['error' => 'Processing timeout. Please check results later using getBatchResults.'];
+        return ['error' => 'Processing timeout after ' . ($max_attempts * 3) . ' seconds. Please check results later using getBatchResults.'];
     }
     
     /**
@@ -236,7 +348,7 @@ class ExtractaAPI {
         
         $headers = [
             'Content-Type: application/json',
-            'Authorization: Bearer ' . $this->api_key,
+            'x-api-key: ' . $this->api_key, // Use x-api-key instead of Authorization Bearer
             'Accept: application/json'
         ];
         
@@ -244,7 +356,10 @@ class ExtractaAPI {
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 30,
-            CURLOPT_HTTPHEADER => $headers
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 3
         ]);
         
         if ($method === 'POST') {
@@ -262,14 +377,14 @@ class ExtractaAPI {
             return ['error' => 'cURL Error: ' . $curl_error];
         }
         
-        if ($http_code !== 200) {
+        if ($http_code < 200 || $http_code >= 300) {
             return ['error' => 'HTTP Error ' . $http_code . ': ' . $response];
         }
         
         $decoded_response = json_decode($response, true);
         
         if (json_last_error() !== JSON_ERROR_NONE) {
-            return ['error' => 'Invalid JSON response: ' . json_last_error_msg()];
+            return ['error' => 'Invalid JSON response: ' . json_last_error_msg() . ' - Raw response: ' . substr($response, 0, 500)];
         }
         
         return $decoded_response;
@@ -281,6 +396,14 @@ class ExtractaAPI {
      */
     public function setExtractionId($extraction_id) {
         $this->extraction_id = $extraction_id;
+    }
+    
+    /**
+     * Get current extraction ID
+     * @return string|null
+     */
+    public function getExtractionId() {
+        return $this->extraction_id;
     }
     
     /**
@@ -350,15 +473,11 @@ class ExtractaAPI {
                 error_log("SaveParsedData - Education: " . count($parsed_data['education']) . " entries");
             }
             
-            // Extract languages (list<object>) - note: your template shows "langauges" but I assume it's "languages"
+            // Extract languages (list<object>)
             $languages = '[]';
             if (isset($parsed_data['languages']) && is_array($parsed_data['languages'])) {
                 $languages = json_encode($parsed_data['languages']);
                 error_log("SaveParsedData - Languages: " . count($parsed_data['languages']) . " entries");
-            } elseif (isset($parsed_data['langauges']) && is_array($parsed_data['langauges'])) {
-                // Handle potential typo in your extraction template
-                $languages = json_encode($parsed_data['langauges']);
-                error_log("SaveParsedData - Languages (langauges): " . count($parsed_data['langauges']) . " entries");
             }
             
             // Extract skills (list<object>)
