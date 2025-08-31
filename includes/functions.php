@@ -645,39 +645,6 @@ function saveChatMessage($user_id, $session_id, $message, $response) {
     }
 }
 
-// Function for role transitions - used in dashboards
-function handleRoleRedirect($pdo, $current_page) {
-    // Check if user's role has changed (e.g., from candidate to employee)
-    if (isset($_SESSION['user_id'])) {
-        $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($user && $user['role'] !== $_SESSION['role']) {
-            $_SESSION['role'] = $user['role'];
-            
-            // Redirect based on new role if not already on correct page
-            switch ($user['role']) {
-                case 'hr':
-                    if ($current_page !== 'hr-dashboard.php') {
-                        header('Location: hr-dashboard.php?transitioned=true');
-                        exit;
-                    }
-                    break;
-                case 'employee':
-                    if ($current_page !== 'employee-dashboard.php') {
-                        header('Location: employee-dashboard.php?transitioned=true');
-                        exit;
-                    }
-                    break;
-                case 'candidate':
-                    if ($current_page !== 'candidate-dashboard.php') {
-                        header('Location: candidate-dashboard.php?transitioned=true');
-                        exit;
-                    }
-                    break;
-            }
-        }
-    }
 }
 ?>
+
