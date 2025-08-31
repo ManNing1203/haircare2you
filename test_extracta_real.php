@@ -18,15 +18,74 @@ if (!defined('EXTRACTA_API_KEY') || empty(EXTRACTA_API_KEY)) {
 
 echo "✅ API Key found and loaded from config.php (" . strlen(EXTRACTA_API_KEY) . " characters)\n";
 
-// === TEMPORARY DEBUG SECTION - REMOVE AFTER FIXING ===
+// === ENHANCED DEBUG SECTION ===
 echo "\n=== API KEY DEBUG INFO ===\n";
 $key = EXTRACTA_API_KEY;
-echo "Key starts with: " . substr($key, 0, 8) . "...\n";
-echo "Key ends with: ..." . substr($key, -8) . "\n";
-echo "Has spaces: " . (strpos($key, ' ') !== false ? 'Yes (PROBLEM!)' : 'No') . "\n";
-echo "Is trimmed: " . (trim($key) === $key ? 'Yes' : 'No (PROBLEM!)') . "\n";
-echo "Format check: " . (preg_match('/^[a-zA-Z0-9_-]+$/', $key) ? 'Valid' : 'Invalid chars') . "\n";
-// === END DEBUG SECTION ===
+echo "Key length: " . strlen($key) . "\n";
+echo "Key starts with: " . substr($key, 0, 10) . "...\n";
+echo "Key ends with: ..." . substr($key, -10) . "\n";
+echo "Raw key (first 20 chars): " . bin2hex(substr($key, 0, 20)) . "\n";
+echo "Has spaces: " . (strpos($key, ' ') !== false ? 'Yes' : 'No') . "\n";
+echo "Has newlines: " . (strpos($key, "\n") !== false || strpos($key, "\r") !== false ? 'Yes' : 'No') . "\n";
+echo "Special chars found: ";
+$special_chars = [];
+for ($i = 0; $i < strlen($key); $i++) {
+    $char = $key[$i];
+    if (!ctype_alnum($char) && $char !== '-' && $char !== '_') {
+        $special_chars[] = "'" . $char . "' (pos $i)";
+    }
+}
+echo empty($special_chars) ? 'None' : implode(', ', array_unique($special_chars));
+echo "\n";
+
+echo "\n=== TEST DIFFERENT API KEY FORMATS ===\n";
+// Test 1: Original key
+echo "Test 1 - Original key: ";
+$test1 = curl_init();
+curl_setopt_array($test1, [
+    CURLOPT_URL => 'https://api.extracta.ai/api/v1/createExtraction',
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => '{"extractionType":"resume","name":"Test"}',
+    CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-api-key: ' . $key],
+    CURLOPT_TIMEOUT => 10
+]);
+$resp1 = curl_exec($test1);
+echo curl_getinfo($test1, CURLINFO_HTTP_CODE) . "\n";
+curl_close($test1);
+
+// Test 2: Trimmed key
+echo "Test 2 - Trimmed key: ";
+$trimmed_key = trim($key);
+$test2 = curl_init();
+curl_setopt_array($test2, [
+    CURLOPT_URL => 'https://api.extracta.ai/api/v1/createExtraction',
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => '{"extractionType":"resume","name":"Test"}',
+    CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-api-key: ' . $trimmed_key],
+    CURLOPT_TIMEOUT => 10
+]);
+$resp2 = curl_exec($test2);
+echo curl_getinfo($test2, CURLINFO_HTTP_CODE) . "\n";
+curl_close($test2);
+
+// Test 3: URL encoded key
+echo "Test 3 - URL encoded: ";
+$encoded_key = urlencode($key);
+$test3 = curl_init();
+curl_setopt_array($test3, [
+    CURLOPT_URL => 'https://api.extracta.ai/api/v1/createExtraction',
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => '{"extractionType":"resume","name":"Test"}',
+    CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-api-key: ' . $encoded_key],
+    CURLOPT_TIMEOUT => 10
+]);
+$resp3 = curl_exec($test3);
+echo curl_getinfo($test3, CURLINFO_HTTP_CODE) . "\n";
+curl_close($test3);
+// === END ENHANCED DEBUG ===
 
 echo "\n";
 
