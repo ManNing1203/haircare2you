@@ -967,7 +967,7 @@ function getMatchPercentageClass($percentage) {
         </div>
         
         <div class="content-area">
-            <?php if (isset($error)): ?>
+            <?php if (!empty($error)): ?>
                 <div class="alert alert-danger">
                     <span>⚠️</span>
                     <div>
@@ -1694,4 +1694,5 @@ function manageJobs() {
 </body>
 
 </html>
+
 
