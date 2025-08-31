@@ -645,6 +645,4 @@ function saveChatMessage($user_id, $session_id, $message, $response) {
     }
 }
 
-}
 ?>
-
