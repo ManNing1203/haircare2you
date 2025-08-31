@@ -85,6 +85,54 @@ curl_setopt_array($test3, [
 $resp3 = curl_exec($test3);
 echo curl_getinfo($test3, CURLINFO_HTTP_CODE) . "\n";
 curl_close($test3);
+echo "\n=== TEST DIFFERENT HEADER FORMATS ===\n";
+$key = EXTRACTA_API_KEY;
+
+// Test different header formats that APIs commonly use
+$header_tests = [
+    'x-api-key: ' . $key,
+    'X-API-Key: ' . $key, 
+    'Authorization: Bearer ' . $key,
+    'Authorization: ' . $key,
+    'API-Key: ' . $key,
+    'apikey: ' . $key,
+    'X-API-TOKEN: ' . $key
+];
+
+foreach ($header_tests as $index => $header) {
+    echo "Test " . ($index + 1) . " - " . explode(':', $header)[0] . ": ";
+    
+    $test = curl_init();
+    curl_setopt_array($test, [
+        CURLOPT_URL => 'https://api.extracta.ai/api/v1/createExtraction',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => '{"extractionType":"resume","name":"HeaderTest"}',
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json', $header],
+        CURLOPT_TIMEOUT => 10
+    ]);
+    
+    $resp = curl_exec($test);
+    $code = curl_getinfo($test, CURLINFO_HTTP_CODE);
+    echo $code;
+    
+    if ($code !== 401) {
+        echo " ✅ SUCCESS!";
+        $decoded = json_decode($resp, true);
+        if (isset($decoded['extractionId'])) {
+            echo " (Got extraction ID: " . $decoded['extractionId'] . ")";
+        }
+    }
+    echo "\n";
+    curl_close($test);
+}
+
+echo "\n=== RECOMMENDATION ===\n";
+echo "If all tests above show 401, then:\n";
+echo "1. ❌ Your API key is invalid/expired\n";
+echo "2. ✅ Go to your Extracta.ai dashboard\n";
+echo "3. ✅ Generate a new API key\n";
+echo "4. ✅ Update your environment variable\n";
 // === END ENHANCED DEBUG ===
 
 echo "\n";
