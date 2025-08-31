@@ -154,11 +154,12 @@ if ($_POST) {
                         $stmt->execute([$key, $value]);
                     }
 
-                if (!isset($users)) $users = [];
-if (!isset($job_positions)) $job_positions = [];
-if (!isset($training_modules)) $training_modules = [];
-if (!isset($onboarding_tasks)) $onboarding_tasks = [];
-if (!isset($faq_items)) $faq_items = [];
+                $users = [];
+$job_positions = [];
+$training_modules = [];
+$onboarding_tasks = [];
+$faq_items = [];
+$chatbot_settings = [];
                     
                     $success = "Chatbot settings updated successfully!";
                     break;
@@ -1826,4 +1827,5 @@ $departments = ['ALL', 'IT', 'Sales & Marketing', 'Customer Service', 'Operation
 </body>
 
 </html>
+
 
