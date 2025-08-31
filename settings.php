@@ -199,19 +199,19 @@ $chatbot_settings = [];
 try {
     // Get all users
     $stmt = $pdo->query("SELECT * FROM users ORDER BY created_at DESC");
-    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     
-    // Get all job positions
+    // Get all job positions  
     $stmt = $pdo->query("SELECT * FROM job_positions ORDER BY created_at DESC");
-    $job_positions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $job_positions = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     
     // Get all training modules
     $stmt = $pdo->query("SELECT * FROM training_modules ORDER BY created_at DESC");
-    $training_modules = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $training_modules = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     
     // Get all onboarding tasks
     $stmt = $pdo->query("SELECT * FROM onboarding_tasks ORDER BY order_sequence");
-    $onboarding_tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $onboarding_tasks = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     
     // Get chatbot settings
     $stmt = $pdo->query("SELECT setting_key, setting_value FROM chatbot_settings");
@@ -222,10 +222,17 @@ try {
     
     // Get FAQ items
     $stmt = $pdo->query("SELECT * FROM chatbot_faq ORDER BY created_at DESC LIMIT 10");
-    $faq_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $faq_items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     
 } catch (Exception $e) {
     $error = "Failed to load data: " . $e->getMessage();
+    // Ensure arrays are initialized even on error
+    $users = $users ?: [];
+    $job_positions = $job_positions ?: [];
+    $training_modules = $training_modules ?: [];
+    $onboarding_tasks = $onboarding_tasks ?: [];
+    $faq_items = $faq_items ?: [];
+    $chatbot_settings = $chatbot_settings ?: [];
 }
 
 $departments = ['ALL', 'IT', 'Sales & Marketing', 'Customer Service', 'Operations', 'Management'];
@@ -1827,6 +1834,7 @@ $departments = ['ALL', 'IT', 'Sales & Marketing', 'Customer Service', 'Operation
 </body>
 
 </html>
+
 
 
 
