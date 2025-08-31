@@ -4,10 +4,27 @@ require_once 'includes/extracta_api.php';
 
 echo "<h2>Extracta.ai Production Test - Fixed Version</h2>\n";
 
+// Get API key from environment variables
+$api_key = getenv('EXTRACTA_API_KEY') ?: $_ENV['EXTRACTA_API_KEY'] ?? null;
+
+// If not found in environment, check if it's defined as a constant
+if (!$api_key && defined('EXTRACTA_API_KEY')) {
+    $api_key = EXTRACTA_API_KEY;
+}
+
 // Check if API key exists
-if (!defined('EXTRACTA_API_KEY') || empty(EXTRACTA_API_KEY)) {
-    echo "❌ API Key not found\n";
+if (empty($api_key)) {
+    echo "❌ API Key not found in environment variables or constants\n";
+    echo "Environment check:\n";
+    echo "- getenv('EXTRACTA_API_KEY'): " . (getenv('EXTRACTA_API_KEY') ? 'Found' : 'Not found') . "\n";
+    echo "- \$_ENV['EXTRACTA_API_KEY']: " . (isset($_ENV['EXTRACTA_API_KEY']) ? 'Found' : 'Not found') . "\n";
+    echo "- defined('EXTRACTA_API_KEY'): " . (defined('EXTRACTA_API_KEY') ? 'Found' : 'Not found') . "\n";
     exit;
+}
+
+// Define the constant for the ExtractaAPI class
+if (!defined('EXTRACTA_API_KEY')) {
+    define('EXTRACTA_API_KEY', $api_key);
 }
 
 echo "✅ API Key found\n\n";
