@@ -881,23 +881,23 @@ $departments = ['ALL', 'IT', 'Sales & Marketing', 'Customer Service', 'Operation
         </div>
         
         <div class="content-area">
-            <?php if ($error): ?>
-                <div class="alert alert-danger">
-                    <span>⚠️</span>
-                    <div>
-                        <strong>Error:</strong> <?php echo htmlspecialchars($error); ?>
-                    </div>
-                </div>
-            <?php endif; ?>
+            <?php if (!empty($error)): ?>
+    <div class="alert alert-danger">
+        <span>⚠️</span>
+        <div>
+            <strong>Error:</strong> <?php echo htmlspecialchars($error); ?>
+        </div>
+    </div>
+<?php endif; ?>
 
-            <?php if ($success): ?>
-                <div class="alert alert-success">
-                    <span>✅</span>
-                    <div>
-                        <strong>Success:</strong> <?php echo htmlspecialchars($success); ?>
-                    </div>
-                </div>
-            <?php endif; ?>
+<?php if (!empty($success)): ?>
+    <div class="alert alert-success">
+        <span>✅</span>
+        <div>
+            <strong>Success:</strong> <?php echo htmlspecialchars($success); ?>
+        </div>
+    </div>
+<?php endif; ?>
 
             <!-- Settings Tabs -->
             <div class="tabs">
@@ -1834,6 +1834,7 @@ $departments = ['ALL', 'IT', 'Sales & Marketing', 'Customer Service', 'Operation
 </body>
 
 </html>
+
 
 
 
