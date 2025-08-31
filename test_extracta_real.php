@@ -16,7 +16,19 @@ if (!defined('EXTRACTA_API_KEY') || empty(EXTRACTA_API_KEY)) {
     exit;
 }
 
-echo "✅ API Key found and loaded from config.php (" . strlen(EXTRACTA_API_KEY) . " characters)\n\n";
+echo "✅ API Key found and loaded from config.php (" . strlen(EXTRACTA_API_KEY) . " characters)\n";
+
+// === TEMPORARY DEBUG SECTION - REMOVE AFTER FIXING ===
+echo "\n=== API KEY DEBUG INFO ===\n";
+$key = EXTRACTA_API_KEY;
+echo "Key starts with: " . substr($key, 0, 8) . "...\n";
+echo "Key ends with: ..." . substr($key, -8) . "\n";
+echo "Has spaces: " . (strpos($key, ' ') !== false ? 'Yes (PROBLEM!)' : 'No') . "\n";
+echo "Is trimmed: " . (trim($key) === $key ? 'Yes' : 'No (PROBLEM!)') . "\n";
+echo "Format check: " . (preg_match('/^[a-zA-Z0-9_-]+$/', $key) ? 'Valid' : 'Invalid chars') . "\n";
+// === END DEBUG SECTION ===
+
+echo "\n";
 
 echo "=== Testing Domain Connectivity ===\n";
 $domain_test = curl_init();
