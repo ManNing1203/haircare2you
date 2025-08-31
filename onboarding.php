@@ -823,28 +823,26 @@ try {
             $emp_dept = $employee['department'] ?? 'ALL';
             
             if ($has_department_column && $emp_dept != 'ALL') {
-                $dept_tasks_query = $connection->prepare("
-                    SELECT ot.id, ot.order_sequence, COALESCE(eo.status, 'pending') as status
-                    FROM onboarding_tasks ot
-                    LEFT JOIN employee_onboarding eo ON ot.id = eo.task_id AND eo.employee_id = ?
-                    WHERE (ot.department = 'ALL' OR ot.department = ?) AND ot.is_mandatory = 1
-                    ORDER BY ot.order_sequence
-                ");
-                $dept_tasks_query->bind_param("is", $employee['id'], $emp_dept);
-            } else {
-                $dept_tasks_query = $connection->prepare("
-                    SELECT ot.id, ot.order_sequence, COALESCE(eo.status, 'pending') as status
-                    FROM onboarding_tasks ot
-                    LEFT JOIN employee_onboarding eo ON ot.id = eo.task_id AND eo.employee_id = ?
-                    WHERE ot.is_mandatory = 1
-                    ORDER BY ot.order_sequence
-                ");
-                $dept_tasks_query->bind_param("i", $employee['id']);
-            }
-            
-            $dept_tasks_query->execute();
-            $dept_result = $dept_tasks_query->get_result();
-            $dept_tasks = $dept_result ? $dept_result->fetch_all(MYSQLI_ASSOC) : [];
+    $dept_tasks_query = $pdo->prepare("
+        SELECT ot.id, ot.order_sequence, COALESCE(eo.status, 'pending') as status
+        FROM onboarding_tasks ot
+        LEFT JOIN employee_onboarding eo ON ot.id = eo.task_id AND eo.employee_id = ?
+        WHERE (ot.department = 'ALL' OR ot.department = ?) AND ot.is_mandatory = true
+        ORDER BY ot.order_sequence
+    ");
+    $dept_tasks_query->execute([$employee['id'], $emp_dept]);
+} else {
+    $dept_tasks_query = $pdo->prepare("
+        SELECT ot.id, ot.order_sequence, COALESCE(eo.status, 'pending') as status
+        FROM onboarding_tasks ot
+        LEFT JOIN employee_onboarding eo ON ot.id = eo.task_id AND eo.employee_id = ?
+        WHERE ot.is_mandatory = true
+        ORDER BY ot.order_sequence
+    ");
+    $dept_tasks_query->execute([$employee['id']]);
+}
+
+$dept_tasks = $dept_tasks_query->fetchAll(PDO::FETCH_ASSOC);
             
         } catch (Exception $e) {
             $dept_tasks = [];
@@ -965,3 +963,4 @@ try {
 </body>
 
 </html>
+
