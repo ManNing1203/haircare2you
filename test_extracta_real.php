@@ -1,6 +1,6 @@
 <?php
 // Updated test_extracta_real.php with proper POST requests
-require_once 'ExtractaAPI.php';
+require_once 'extracta_api.php';
 
 echo "<h2>Extracta.ai Production Test - Fixed Version</h2>\n";
 
