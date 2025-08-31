@@ -1194,20 +1194,21 @@ function getMatchPercentageClass($percentage) {
                     <?php
                     // Get all employees and their onboarding progress
                     try {
-                        $stmt = $pdo->query("
-                            SELECT u.id, u.full_name, u.email,
-                                   COUNT(eo.id) as total_tasks,
-                                   SUM(CASE WHEN eo.status = 'completed' THEN 1 ELSE 0 END) as completed_tasks
-                            FROM users u
-                            LEFT JOIN employee_onboarding eo ON u.id = eo.employee_id
-                            WHERE u.role = 'employee' AND u.status = 'active'
-                            GROUP BY u.id, u.full_name, u.email
-                            ORDER BY u.full_name
-                        ");
-                        $employees = $stmt->fetch_all(MYSQLI_ASSOC);
-                    } catch(Exception $e) {
-                        $employees = [];
-                    }
+    $stmt = $pdo->query("
+        SELECT u.id, u.full_name, u.email,
+               COUNT(eo.id) as total_tasks,
+               SUM(CASE WHEN eo.status = 'completed' THEN 1 ELSE 0 END) as completed_tasks
+        FROM users u
+        LEFT JOIN employee_onboarding eo ON u.id = eo.employee_id
+        WHERE u.role = 'employee' AND u.status = 'active'
+        GROUP BY u.id, u.full_name, u.email
+        ORDER BY u.full_name
+    ");
+    $employees = $stmt->fetchAll(PDO::FETCH_ASSOC); // Changed from fetch_all() to fetchAll()
+} catch(Exception $e) {
+    $employees = [];
+    error_log("Employee onboarding query error: " . $e->getMessage());
+}
                     ?>
 
                     <?php if (empty($employees)): ?>
@@ -1694,6 +1695,7 @@ function manageJobs() {
 </body>
 
 </html>
+
 
 
 
