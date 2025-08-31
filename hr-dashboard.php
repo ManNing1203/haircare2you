@@ -1194,7 +1194,7 @@ function getMatchPercentageClass($percentage) {
                     <?php
                     // Get all employees and their onboarding progress
                     try {
-                        $stmt = $connection->query("
+                        $stmt = $pdo->query("
                             SELECT u.id, u.full_name, u.email,
                                    COUNT(eo.id) as total_tasks,
                                    SUM(CASE WHEN eo.status = 'completed' THEN 1 ELSE 0 END) as completed_tasks
@@ -1694,5 +1694,6 @@ function manageJobs() {
 </body>
 
 </html>
+
 
 
