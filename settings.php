@@ -933,31 +933,31 @@ $departments = ['ALL', 'IT', 'Sales & Marketing', 'Customer Service', 'Operation
                         </thead>
                         <tbody>
                             <?php foreach ($users as $user): ?>
-                                <tr>
-                                    <td>
-                                        <strong style="color: var(--secondary-color);"><?php echo htmlspecialchars($user['full_name']); ?></strong>
-                                    </td>
-                                    <td><?php echo htmlspecialchars($user['email']); ?></td>
-                                    <td><?php echo htmlspecialchars($user['username']); ?></td>
-                                    <td>
-                                        <span class="badge <?php echo $user['role'] === 'hr' ? 'badge-success' : ($user['role'] === 'employee' ? 'badge-warning' : 'badge-danger'); ?>">
-                                            <?php echo ucfirst($user['role']); ?>
-                                        </span>
-                                    </td>
-                                    <td><?php echo htmlspecialchars($user['department']); ?></td>
-                                    <td>
-                                        <span class="badge <?php echo $user['status'] === 'active' ? 'badge-success' : 'badge-danger'; ?>">
-                                            <?php echo ucfirst($user['status']); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-secondary" onclick="editUser(<?php echo htmlspecialchars(json_encode($user)); ?>)">Edit</button>
-                                        <?php if ($user['id'] != $_SESSION['user_id']): ?>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteUser(<?php echo $user['id']; ?>)">Delete</button>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
+    <tr>
+        <td>
+            <strong style="color: var(--secondary-color);"><?php echo htmlspecialchars($user['full_name'] ?? ''); ?></strong>
+        </td>
+        <td><?php echo htmlspecialchars($user['email'] ?? ''); ?></td>
+        <td><?php echo htmlspecialchars($user['username'] ?? ''); ?></td>
+        <td>
+            <span class="badge <?php echo ($user['role'] ?? '') === 'hr' ? 'badge-success' : (($user['role'] ?? '') === 'employee' ? 'badge-warning' : 'badge-danger'); ?>">
+                <?php echo ucfirst($user['role'] ?? ''); ?>
+            </span>
+        </td>
+        <td><?php echo htmlspecialchars($user['department'] ?? ''); ?></td>
+        <td>
+            <span class="badge <?php echo ($user['status'] ?? '') === 'active' ? 'badge-success' : 'badge-danger'; ?>">
+                <?php echo ucfirst($user['status'] ?? ''); ?>
+            </span>
+        </td>
+        <td>
+            <button class="btn btn-sm btn-secondary" onclick="editUser(<?php echo htmlspecialchars(json_encode($user)); ?>)">Edit</button>
+            <?php if (($user['id'] ?? 0) != $_SESSION['user_id']): ?>
+                <button class="btn btn-sm btn-danger" onclick="deleteUser(<?php echo $user['id'] ?? 0; ?>)">Delete</button>
+            <?php endif; ?>
+        </td>
+    </tr>
+<?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
@@ -1827,5 +1827,6 @@ $departments = ['ALL', 'IT', 'Sales & Marketing', 'Customer Service', 'Operation
 </body>
 
 </html>
+
 
 
