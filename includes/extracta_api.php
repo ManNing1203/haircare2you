@@ -15,7 +15,7 @@ class ExtractaAPI {
     }
     
     /**
-     * Create an extraction template for resumes
+     * Create an extraction template for resumes - ONLY USE IF YOU DON'T HAVE ONE
      * @return array - Response with extractionId or error
      */
     public function createResumeExtraction() {
@@ -119,50 +119,7 @@ class ExtractaAPI {
     }
     
     /**
-     * Simple extraction template creation (for testing)
-     * @return array - Response with extractionId or error
-     */
-    public function createExtractionTemplate() {
-        $url = $this->base_url . 'createExtraction';
-        
-        $simple_template = [
-            'name' => 'Resume Parser - Simple',
-            'description' => 'Basic resume information extraction',
-            'language' => 'English',
-            'fields' => [
-                [
-                    'key' => 'name',
-                    'description' => 'Full name of the candidate',
-                    'example' => 'John Doe'
-                ],
-                [
-                    'key' => 'email',
-                    'description' => 'Email address',
-                    'example' => 'john@example.com'
-                ],
-                [
-                    'key' => 'phone',
-                    'description' => 'Phone number',
-                    'example' => '+1-555-123-4567'
-                ],
-                [
-                    'key' => 'skills',
-                    'description' => 'List of skills and technologies',
-                    'example' => 'JavaScript, Python, React'
-                ],
-                [
-                    'key' => 'experience',
-                    'description' => 'Work experience summary',
-                    'example' => 'Software Engineer at ABC Corp (2020-2023)'
-                ]
-            ]
-        ];
-        
-        return $this->makeRequest('POST', $url, ['extractionDetails' => $simple_template]);
-    }
-    
-    /**
-     * Upload and parse a resume file
+     * Upload and parse a resume file using EXISTING extraction template
      * @param string $file_path - Full path to the resume file
      * @param string $extraction_id - Extraction template ID (optional, uses class property if not provided)
      * @return array - Upload response or error
@@ -172,7 +129,7 @@ class ExtractaAPI {
         $extraction_id = $extraction_id ?: $this->extraction_id;
         
         if (!$extraction_id) {
-            return ['error' => 'Extraction ID is required. Please create an extraction template first.'];
+            return ['error' => 'Extraction ID is required. Please set it with setExtractionId() or pass it as parameter.'];
         }
         
         // Check if file exists
@@ -200,7 +157,7 @@ class ExtractaAPI {
         // Initialize cURL
         $ch = curl_init();
         
-        // Set cURL options for file upload
+        // Set cURL options for file upload - using Authorization Bearer instead of x-api-key
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_POST => true,
@@ -208,7 +165,7 @@ class ExtractaAPI {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 120, // Longer timeout for file upload
             CURLOPT_HTTPHEADER => [
-                'x-api-key: ' . $this->api_key, // Use x-api-key instead of Authorization
+                'Authorization: Bearer ' . $this->api_key, // Updated to use Bearer
                 'Accept: application/json'
                 // Don't set Content-Type for multipart/form-data - let cURL handle it
             ],
@@ -267,7 +224,7 @@ class ExtractaAPI {
     }
     
     /**
-     * Parse a resume file (complete workflow)
+     * Parse a resume file using existing extraction template (complete workflow)
      * @param string $file_path - Full path to the resume file
      * @return array - Parsed resume data or error
      */
@@ -348,7 +305,7 @@ class ExtractaAPI {
         
         $headers = [
             'Content-Type: application/json',
-            'x-api-key: ' . $this->api_key, // Use x-api-key instead of Authorization Bearer
+            'Authorization: Bearer ' . $this->api_key, // Updated to use Bearer
             'Accept: application/json'
         ];
         
