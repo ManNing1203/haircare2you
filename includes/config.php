@@ -13,7 +13,17 @@ if (isset($_ENV['DATABASE_HOST'])) {
     error_log("Connecting to PostgreSQL: " . $_ENV['DATABASE_HOST'] . ":" . $_ENV['DATABASE_PORT']);
 }
 
-// Extracta.ai API Configuration - reads from environment
-define('EXTRACTA_API_KEY', $_ENV['EXTRACTA_API_KEY'] ?? ' ');
-define('EXTRACTA_EXTRACTION_ID', $_ENV['EXTRACTA_EXTRACTION_ID'] ?? '-OY-tgWlYrpfUxqIQqWr');
+// Extracta.ai API Configuration - reads from environment with proper fallbacks
+$extracta_api_key = $_ENV['EXTRACTA_API_KEY'] ?? getenv('EXTRACTA_API_KEY') ?? null;
+$extracta_extraction_id = $_ENV['EXTRACTA_EXTRACTION_ID'] ?? getenv('EXTRACTA_EXTRACTION_ID') ?? '-OY-tgWlYrpfUxqIQqWr';
+
+// Define constants only if we have valid values
+if (!empty($extracta_api_key)) {
+    define('EXTRACTA_API_KEY', $extracta_api_key);
+}
+
+if (!empty($extracta_extraction_id)) {
+    define('EXTRACTA_EXTRACTION_ID', $extracta_extraction_id);
+}
+
 // NO CLOSING TAG - this prevents header issues
