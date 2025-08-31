@@ -162,8 +162,10 @@ curl_setopt_array($create_test, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => json_encode([
-        'extractionType' => 'resume',
-        'name' => 'Test Extraction'
+        'extractionDetails' => [
+            'extractionType' => 'resume',
+            'name' => 'Test Extraction'
+        ]
     ]),
     CURLOPT_HTTPHEADER => [
         'Content-Type: application/json',
